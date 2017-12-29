@@ -15,6 +15,7 @@ def test_compilers():
 
     rc = RecursiveCompiler(incsv="tests/ex.csv", outfr="output/ex.fr", maxdepth=2)
     rc.compile()
+    rc.frwrite()
 
 if __name__ == "__main__":
     test_compilers()
