@@ -48,15 +48,18 @@ def entropy(data, to_plot=True):
     entropy = scipy.stats.entropy(probabilities)
     return entropy
 
-def gaussian_fit_mse(data, dataset):
-    counts, partitions = np.histogram(data, 25)
+def gaussian_fit(data, dataset=None):
     mu, std = norm.fit(data)
-    plot_fit(dataset, data, mu, std)
-    dist = scipy.stats.norm(mu, std)
+    if dataset is not None:
+        plot_fit(dataset, data, mu, std)
+    return mu, std
 
+def gaussian_mse(data, mu, std):
+    counts, partitions = np.histogram(data, 25)
+    dist = scipy.stats.norm(mu, std)
     predicted_counts = np.array([dist.pdf(np.mean([partitions[i],partitions[i+1]])) * len(data) 
         for i in range(len(partitions)-1)])
-    return np.square(counts - predicted_counts).mean()
+    return mu, std, np.square(counts - predicted_counts).mean()
 
 def run_partition(df, partition_column, column, partition):
     data = df[column]
@@ -68,30 +71,53 @@ def run_partition(df, partition_column, column, partition):
     
     new_entropy = left_frac * entropy(left_partition) + \
         right_frac * entropy(right_partition)
-
     information_gain = new_entropy - orig_entropy
-    if information_gain < c.INFORMATION_GAIN_THRESH:
-        return None
+    
+    orig_mu, orig_std   = gaussian_fit(data, "original")
+    left_mu, left_std   = gaussian_fit(left_partition, "left")
+    right_mu, right_std = gaussian_fit(right_partition, "right")
+    
+    orig_mse  = gaussian_mse(data, orig_mu, orig_std)
+    left_mse  = gaussian_mse(data, left_mu, left_std)
+    right_mse = gaussian_mse(data, right_mu, right_std)
+    new_mse   = left_frac * left_mse + right_frac * right_mse
 
-    orig_mse  = gaussian_fit_mse(data, "original")
-    left_mse  = gaussian_fit_mse(left_partition, "left")
-    right_mse = gaussian_fit_mse(right_partition, "right")
-    new_mse = left_frac * left_mse + right_frac * right_mse
-
-    if orig_mse < new_mse:
-        return None
+    if information_gain < c.INFORMATION_GAIN_THRESH or orig_mse < new_mse:
+        return (orig_mu, orig_std), None
+    return ((left_mu, left_std), (right_mu, right_std)), new_mse
 
 def construct(csv):
+    program = {}
+    completed = set()
+
     df = pd.read_csv(csv)
     for i, partition_column in enumerate(df.columns):
+        if partition_column not in completed:
+            mu, std = gaussian_fit_mse(data)
+            program[partition_column] = {
+                "fit" : (mu, std),
+                "partition" : None
+            }
+            completed.add(partition_column)
+
         for j, column in enumerate(df.columns[i+1:]):
             partition_mean = np.mean(df[partition_column])
             partition_std  = np.std(df[partition_column])
             partitions = [partition_mean - partition_std, 
                 partition_mean, partition_mean + partition_std]
 
+            min_mse  = None
+            best_fit = None
+
             for partition in partitions:
-                run_partition(df, partition_column, column, partition)
+                fit, mse = run_partition(df, partition_column, column, partition)
+                if mse is not None:
+                    if min_mse is None or mse < min_mse:
+                        min_mse = mse
+                        best_fit = fit
+
+            if best_fit is not None:
+                program[column] = {"fit" : (mu, std)}
 
 def test():
     test_arr = np.array([1] * 5 + [10] * 5)
@@ -99,4 +125,31 @@ def test():
     construct("tests/ex.csv")
 
 if __name__ == "__main__":
+    fr_input = """
+    ethnicity = gaussian(0,100)
+    colRank = gaussian(25,100)
+    yExp = gaussian(10,25)
+    if ethnicity > 10:
+        colRank = colRank + 5"""
+
+    ex_output = {
+        "ethnicity" : {
+            "fit" : (0,100),
+            "partition" : 10,
+            "left" : {
+                "colRank" : {
+                    "fit" : (25,100),
+                    "partition" : None
+                }
+            },
+            "right" : {
+                "colRank" : {
+                    "fit" : (30,100),
+                    "partition" : None
+                }
+            }
+        },
+        "yExp" : (10,25)
+    }
+
     test()
