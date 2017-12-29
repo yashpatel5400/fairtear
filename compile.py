@@ -6,11 +6,15 @@ file generation
 """
 
 from compilers.simple import SimpleCompiler
+from compilers.recursive import RecursiveCompiler
 
 def test_compilers():
-    sc = SimpleCompiler(incsv="tests/ex.csv", outfr="output/ex.fr")
-    sc.compile()
-    sc.frwrite()
+    # sc = SimpleCompiler(incsv="tests/ex.csv", outfr="output/ex.fr")
+    # sc.compile()
+    # sc.frwrite()
+
+    rc = RecursiveCompiler(incsv="tests/ex.csv", outfr="output/ex.fr", maxdepth=2)
+    rc.compile()
 
 if __name__ == "__main__":
     test_compilers()
