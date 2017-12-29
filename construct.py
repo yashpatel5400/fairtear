@@ -48,18 +48,12 @@ def entropy(data, to_plot=True):
     entropy = scipy.stats.entropy(probabilities)
     return entropy
 
-def gaussian_fit(data, dataset=None):
-    mu, std = norm.fit(data)
-    if dataset is not None:
-        plot_fit(dataset, data, mu, std)
-    return mu, std
-
 def gaussian_mse(data, mu, std):
     counts, partitions = np.histogram(data, 25)
     dist = scipy.stats.norm(mu, std)
     predicted_counts = np.array([dist.pdf(np.mean([partitions[i],partitions[i+1]])) * len(data) 
         for i in range(len(partitions)-1)])
-    return mu, std, np.square(counts - predicted_counts).mean()
+    return np.square(counts - predicted_counts).mean()
 
 def run_partition(df, partition_column, column, partition):
     data = df[column]
@@ -71,16 +65,27 @@ def run_partition(df, partition_column, column, partition):
     
     new_entropy = left_frac * entropy(left_partition) + \
         right_frac * entropy(right_partition)
-    information_gain = new_entropy - orig_entropy
+    information_gain = orig_entropy - new_entropy
     
-    orig_mu, orig_std   = gaussian_fit(data, "original")
-    left_mu, left_std   = gaussian_fit(left_partition, "left")
-    right_mu, right_std = gaussian_fit(right_partition, "right")
-    
-    orig_mse  = gaussian_mse(data, orig_mu, orig_std)
-    left_mse  = gaussian_mse(data, left_mu, left_std)
-    right_mse = gaussian_mse(data, right_mu, right_std)
-    new_mse   = left_frac * left_mse + right_frac * right_mse
+    mus, stds, mses = [], [], []
+    for values, dataset in zip([data, left_partition, right_partition], 
+        ["original", "left", "right"]):
+        
+        mu, std = norm.fit(values)
+        plot_fit(dataset, values, mu, std)
+        mse = gaussian_mse(values, mu, std)
+
+        mus.append(mu)
+        stds.append(std)
+        mses.append(mse)
+
+    orig_mu, left_mu, right_mu    = mus
+    orig_std, left_std, right_std = stds
+    orig_mse, left_mse, right_mse = mses
+    new_mse = left_frac * left_mse + right_frac * right_mse
+
+    print("Information gain: {}".format(information_gain))
+    print("MSEs: {} (Original) ; {} (New)".format(orig_mse, new_mse))
 
     if information_gain < c.INFORMATION_GAIN_THRESH or orig_mse < new_mse:
         return (orig_mu, orig_std), None
@@ -92,37 +97,57 @@ def construct(csv):
 
     df = pd.read_csv(csv)
     for i, partition_column in enumerate(df.columns):
+        print("Running partitioning on: {}...".format(partition_column))
         if partition_column not in completed:
-            mu, std = gaussian_fit_mse(data)
+            data = df[partition_column]
+            mu, std = norm.fit(data)
             program[partition_column] = {
                 "fit" : (mu, std),
-                "partition" : None
+                "partitions" : {}
             }
             completed.add(partition_column)
 
-        for j, column in enumerate(df.columns[i+1:]):
-            partition_mean = np.mean(df[partition_column])
-            partition_std  = np.std(df[partition_column])
-            partitions = [partition_mean - partition_std, 
-                partition_mean, partition_mean + partition_std]
+            for j, column in enumerate(df.columns[i+1:]):
+                partition_mean = np.mean(data)
+                partition_std  = np.std(data)
+                partitions = [partition_mean - partition_std, 
+                    partition_mean, partition_mean + partition_std]
 
-            min_mse  = None
-            best_fit = None
+                min_mse  = None
+                best_fit = None
+                best_partition = None
 
-            for partition in partitions:
-                fit, mse = run_partition(df, partition_column, column, partition)
-                if mse is not None:
-                    if min_mse is None or mse < min_mse:
-                        min_mse = mse
-                        best_fit = fit
+                for partition in partitions:
+                    fit, mse = run_partition(df, partition_column, column, partition)
+                    if mse is not None:
+                        if min_mse is None or mse < min_mse:
+                            min_mse = mse
+                            best_fit = fit
+                            best_partition = partition
 
-            if best_fit is not None:
-                program[column] = {"fit" : (mu, std)}
+                if best_fit is not None:
+                    left_fit, right_fit = best_fit
+                    program[partition_column]["partitions"][partition] = {
+                        "left" : {
+                            column : {
+                                "fit" : left_fit,
+                                "partitions" : {}
+                            }
+                        },
+                        "right" : {
+                            column : {
+                                "fit" : right_fit,
+                                "partitions" : {}
+                            }
+                        }
+                    }
+                    completed.add(column)
+    print("Compiled program tree!")
+    return program
 
 def test():
-    test_arr = np.array([1] * 5 + [10] * 5)
-    entropy(test_arr)
-    construct("tests/ex.csv")
+    program = construct("tests/ex.csv")
+    print(program)
 
 if __name__ == "__main__":
     fr_input = """
@@ -135,21 +160,27 @@ if __name__ == "__main__":
     ex_output = {
         "ethnicity" : {
             "fit" : (0,100),
-            "partition" : 10,
-            "left" : {
-                "colRank" : {
-                    "fit" : (25,100),
-                    "partition" : None
-                }
-            },
-            "right" : {
-                "colRank" : {
-                    "fit" : (30,100),
-                    "partition" : None
+            "partitions" : {
+                10 : {
+                    "left" : {
+                        "colRank" : {
+                            "fit" : (25,100),
+                            "partitions" : {}
+                        }
+                    },
+                    "right" : {
+                        "colRank" : {
+                            "fit" : (30,100),
+                            "partitions" : {}
+                        }
+                    }
                 }
             }
         },
-        "yExp" : (10,25)
+        "yExp" : {
+            "fit" : (10,25),
+            "partitions" : {}
+        }
     }
 
     test()
