@@ -145,9 +145,32 @@ def construct(csv):
     print("Compiled program tree!")
     return program
 
-def test():
-    program = construct("tests/ex.csv")
-    print(program)
+def compile_tree(program, outfr):
+    file_lines = ["def popModel():\n"]
+    print("Reading program tree into .fr format...")
+    for variable in program:
+        file_lines.append("\t{} = gaussian{}\n".format(variable, program[variable]["fit"]))
+        if len(program[variable]["partitions"]) != 0:
+            for partition in program[variable]["partitions"]:
+                partitions = program[variable]["partitions"][partition]
+                
+                file_lines.append("\tif {} <= {}:\n".format(variable, partition))
+                for dependent in partitions["left"]:
+                    file_lines.append("\t\t{} = gaussian{}\n".format(
+                        dependent, partitions["left"][dependent]["fit"]))
+                file_lines.append("\telse:\n")
+                for dependent in partitions["right"]:
+                    file_lines.append("\t\t{} = gaussian{}\n".format(
+                        dependent, partitions["right"][dependent]["fit"]))
+    
+    print("Writing final output...")
+    with open(outfr, "w") as f:
+        f.writelines(file_lines)
+
+def csv_to_fr(incsv, outfr):
+    program = construct(incsv)
+    compile_tree(program, outfr)
+    print("Completed writing file to: {}".format(outfr))
 
 if __name__ == "__main__":
     fr_input = """
@@ -183,4 +206,4 @@ if __name__ == "__main__":
         }
     }
 
-    test()
+    csv_to_fr(incsv="tests/ex.csv", outfr="output/ex.fr")
