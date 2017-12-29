@@ -17,7 +17,6 @@ class RecursiveCompiler:
     """Recursive compiler, which assumes a maximum recursion depth as specified and that all
     the data are Gaussian distributed. 
     """
-
     def __init__(self, incsv, outfr, maxdepth=2):
         self.incsv = incsv
         self.outfr = outfr
@@ -25,60 +24,65 @@ class RecursiveCompiler:
         self.program = {}
 
     def _clean_column(self, to_delete, column):
-        for variable in to_delete:
-            for subpartition in column["partitions"]:
-                if variable in column["partitions"][subpartition]:
-                    break
-            del column["partitions"][subpartition][variable]
-            if len(column["partitions"][subpartition]) == 0:
-                del column["partitions"][subpartition]
+        partitions_to_delete = []
+        for partition in column["partitions"]:
+            for variable in to_delete:
+                del column["partitions"][partition]["left"][variable]
+                del column["partitions"][partition]["right"][variable]
+            
+            if len(column["partitions"][partition]["left"]) == 0:
+                partitions_to_delete.append(partition)
+        
+        for partition in partitions_to_delete:
+            del column["partitions"][partition]
 
     def _recursive_compile(self, program, df, completed, partition_column, depth):
         if depth >= self.maxdepth:
-            return
+            return completed
 
         for column in df.columns:
-            if partition_column in completed:
+            if column in completed:
                 continue
 
             fit, partition = make_partition(df[partition_column], 
                 df[column], num_partitions=5)
             if fit is not None:
                 left_fit, right_fit = fit
-                if partition not in self.program[partition_column]["partitions"]:
-                    self.program[partition_column]["partitions"][partition] = {
+                if partition not in program["partitions"]:
+                    program["partitions"][partition] = {
                         "left" : {},
                         "right" : {}
                     }
 
-                self.program[partition_column]["partitions"][partition]["left"][column] = {
+                program["partitions"][partition]["left"][column] = {
                     "fit" : left_fit,
                     "partitions" : {}
                 }
-                self.program[partition_column]["partitions"][partition]["right"][column] = {
+                program["partitions"][partition]["right"][column] = {
                     "fit" : right_fit,
                     "partitions" : {}
                 }
                 
                 completed.add(column)
-                left_column  = program[partition_column]["partitions"][partition]["left"][column]
-                right_column = program[partition_column]["partitions"][partition]["right"][column]
+                left_column  = program["partitions"][partition]["left"][column]
+                right_column = program["partitions"][partition]["right"][column]
                 
                 left_partition  = df[df[partition_column] <= partition]
                 right_partition = df[df[partition_column] > partition]
 
-                left_completed  = self._recursive_compile(left_column, left_partition, 
-                    copy.deepcopy(completed), column, depth+1)
-                right_completed = self._recursive_compile(right_partition, right_partition, 
-                    copy.deepcopy(completed), column, depth+1)
+                if (depth + 1) < self.maxdepth:
+                    left_completed  = self._recursive_compile(left_column, left_partition, 
+                        copy.deepcopy(completed), column, depth+1)
+                    right_completed = self._recursive_compile(right_column, right_partition, 
+                        copy.deepcopy(completed), column, depth+1)
 
-                # have to delete those variables that were only partitioned on one of the
-                # two sides (i.e. well partitioned on one side but not other)
-                self._clean_column(left_completed - right_completed, left_column)
-                self._clean_column(right_completed - left_completed, right_column)
+                    # have to delete those variables that were only partitioned on one of the
+                    # two sides (i.e. well partitioned on one side but not other)
+                    self._clean_column(left_completed - right_completed, left_column)
+                    self._clean_column(right_completed - left_completed, right_column)
 
-                # add only those that are were completed on both sides to the completed set
-                completed = completed.union(left_completed.intersection(right_completed))
+                    # add only those that are were completed on both sides to the completed set
+                    completed = completed.union(left_completed.intersection(right_completed))
         return completed
 
     def compile(self):
@@ -95,10 +99,12 @@ class RecursiveCompiler:
                 "fit" : (mu, std),
                 "partitions" : {}
             }
-            completed.add(partition_column)
-            self._recursive_compile(self.program, df, completed, 
-                partition_column, depth=0)
 
+            completed.add(partition_column)
+            completed = self._recursive_compile(self.program[partition_column], 
+                df, completed, partition_column, depth=0)
+            print("===============================================")
+            
         print("Compiled program tree!")
         
     def _recursive_frwrite(self, program, file_lines, num_tabs):
@@ -118,7 +124,6 @@ class RecursiveCompiler:
     def frwrite(self):
         print("Reading program tree into .fr format...")
         file_lines = ["def popModel():\n"]
-        print(self.program)
         self._recursive_frwrite(self.program, file_lines, num_tabs=1)
         
         print("Writing final output...")
