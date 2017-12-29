@@ -9,7 +9,7 @@ import scipy.stats
 import pandas as pd
 import numpy as np
 
-from compilers.helper import plot_fit, entropy, gaussian_mse, run_partition
+from compilers.helper import make_partition
 
 class SimpleCompiler:
     """Simplest compiler, which assumes a maximum recursion depth of 1 and that all
@@ -28,8 +28,7 @@ class SimpleCompiler:
         for i, partition_column in enumerate(df.columns):
             print("Running partitioning on: {}...".format(partition_column))
             if partition_column not in completed:
-                data = df[partition_column]
-                mu, std = scipy.stats.norm.fit(data)
+                mu, std = scipy.stats.norm.fit(df[partition_column])
                 self.program[partition_column] = {
                     "fit" : (mu, std),
                     "partitions" : {}
@@ -37,38 +36,24 @@ class SimpleCompiler:
                 completed.add(partition_column)
 
                 for j, column in enumerate(df.columns[i+1:]):
-                    partition_mean = np.mean(data)
-                    partition_std  = np.std(data)
-                    partitions = [partition_mean - partition_std, 
-                        partition_mean, partition_mean + partition_std]
-
-                    min_mse  = None
-                    best_fit = None
-                    best_partition = None
-
-                    for partition in partitions:
-                        fit, mse = run_partition(df, partition_column, column, partition)
-                        if mse is not None:
-                            if min_mse is None or mse < min_mse:
-                                min_mse = mse
-                                best_fit = fit
-                                best_partition = partition
-
-                    if best_fit is not None:
-                        left_fit, right_fit = best_fit
-                        self.program[partition_column]["partitions"][partition] = {
-                            "left" : {
-                                column : {
-                                    "fit" : left_fit,
-                                    "partitions" : {}
-                                }
-                            },
-                            "right" : {
-                                column : {
-                                    "fit" : right_fit,
-                                    "partitions" : {}
-                                }
+                    fit, partition = make_partition(df[partition_column], 
+                        df[column], num_partitions=5)
+                    
+                    if fit is not None:
+                        left_fit, right_fit = fit
+                        if partition not in self.program[partition_column]["partitions"]:
+                            self.program[partition_column]["partitions"][partition] = {
+                                "left" : {},
+                                "right" : {}
                             }
+
+                        self.program[partition_column]["partitions"][partition]["left"][column] = {
+                            "fit" : left_fit,
+                            "partitions" : {}
+                        }
+                        self.program[partition_column]["partitions"][partition]["right"][column] = {
+                            "fit" : right_fit,
+                            "partitions" : {}
                         }
                         completed.add(column)
         print("Compiled program tree!")
