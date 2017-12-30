@@ -11,7 +11,7 @@ import scipy.stats
 import pandas as pd
 import numpy as np
 
-from compilers.helper import make_partition
+from compilers.helper import make_partition, make_fit
 
 class RecursiveCompiler:
     """Recursive compiler, which assumes a maximum recursion depth as specified and that all
@@ -44,10 +44,11 @@ class RecursiveCompiler:
             if column in completed:
                 continue
 
-            fit, partition = make_partition(df[column], 
+            fit, fit_type, partition = make_partition(df[column], 
                 df[partition_column], num_partitions=5)
             if fit is not None:
                 left_fit, right_fit = fit
+                left_fit_type, right_fit_type = fit_type
                 if partition not in program["partitions"]:
                     program["partitions"][partition] = {
                         "left" : {},
@@ -56,10 +57,12 @@ class RecursiveCompiler:
 
                 program["partitions"][partition]["left"][column] = {
                     "fit" : left_fit,
+                    "fit_type"   : left_fit_type,
                     "partitions" : {}
                 }
                 program["partitions"][partition]["right"][column] = {
                     "fit" : right_fit,
+                    "fit_type"   : right_fit_type,
                     "partitions" : {}
                 }
                 
@@ -94,9 +97,10 @@ class RecursiveCompiler:
                 continue
 
             print("Running partitioning on: {}...".format(partition_column))
-            mu, std = scipy.stats.norm.fit(df[partition_column])
+            fit, fit_type, _ = make_fit(df[partition_column])
             self.program[partition_column] = {
-                "fit" : (mu, std),
+                "fit" : fit,
+                "fit_type" : fit_type,
                 "partitions" : {}
             }
 
@@ -110,8 +114,8 @@ class RecursiveCompiler:
     def _recursive_frwrite(self, program, file_lines, num_tabs):
         tabs = "\t" * num_tabs
         for variable in program:
-            file_lines.append("{}{} = gaussian{}\n".format(tabs, 
-                variable, program[variable]["fit"]))
+            file_lines.append("{}{} = {}{}\n".format(tabs, 
+                variable, program[variable]["fit_type"], program[variable]["fit"]))
             if len(program[variable]["partitions"]) != 0:
                 for partition in program[variable]["partitions"]:
                     partitions = program[variable]["partitions"][partition]
