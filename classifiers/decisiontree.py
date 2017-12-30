@@ -6,10 +6,11 @@ structure of FairSquare
 """
 
 class DTCompiler:
-    def __init__(self, clf, features, targets):
+    def __init__(self, clf, features, targets, outfr):
         self.clf = clf
         self.features = features
         self.targets  = targets
+        self.outfr = outfr
 
     def _extract(self, node_index):
         """Structure of rules in a fit decision tree classifier"""
@@ -29,4 +30,15 @@ class DTCompiler:
         return node
 
     def extract(self):
-        return self._extract(node_index=0)
+        extracted = self._extract(node_index=0)
+        return extracted
+
+    def frwrite(self):
+        print("Reading classifier into .fr format...")
+        file_lines = ["def F():\n"]
+        self._recursive_frwrite(self.program, file_lines, num_tabs=1)
+        
+        print("Writing final output...")
+        with open(self.outfr, "w") as f:
+            f.writelines(file_lines)
+        print("Completed writing file to: {}".format(self.outfr))
