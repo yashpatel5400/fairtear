@@ -36,8 +36,8 @@ class SimpleCompiler:
                 completed.add(partition_column)
 
                 for j, column in enumerate(df.columns[i+1:]):
-                    fit, partition = make_partition(df[partition_column], 
-                        df[column], num_partitions=5)
+                    fit, partition = make_partition(df[column], 
+                        df[partition_column], num_partitions=5)
                     
                     if fit is not None:
                         left_fit, right_fit = fit

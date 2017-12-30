@@ -30,20 +30,15 @@ def _plot_fit(dataset, data, mu, std):
 
 def _entropy(data, to_plot=True):
     num_partitions = 10
-
-    arr_range = np.max(data) - np.min(data)
-    step = arr_range / num_partitions
-    partitions = np.histogram(data, 25)[0]
-    probabilities = partitions / len(data)
-
+    counts, _ = np.histogram(data, 25)
+    probabilities = counts / len(data)
     if to_plot:
         plt.hist(data, bins=25, normed=True, alpha=0.6, color='g')
         plt.title("Data Partitions")
         plt.savefig("output/partitions.png")
         plt.close()
 
-    entropy = scipy.stats.entropy(probabilities)
-    return entropy
+    return scipy.stats.entropy(probabilities)
 
 def _gaussian_mse(data, mu, std):
     counts, partitions = np.histogram(data, 25)
@@ -57,7 +52,7 @@ def _partition(data, partition_data, partition):
     left_partition  = data[partition_data <= partition]
     right_partition = data[partition_data > partition]
     
-    left_frac = len(left_partition) / len(data)
+    left_frac  = len(left_partition)  / len(data)
     right_frac = len(right_partition) / len(data)
     
     new_entropy = left_frac * _entropy(left_partition) + \
@@ -84,7 +79,11 @@ def _partition(data, partition_data, partition):
     print("Information gain: {}".format(information_gain))
     print("MSEs: {} (Original) ; {} (New)".format(orig_mse, new_mse))
 
-    if information_gain < c.INFORMATION_GAIN_THRESH or orig_mse < new_mse:
+    if information_gain < c.INFORMATION_GAIN_THRESH \
+        or left_frac  < c.PARTITION_FRAC_THRESH     \
+        or right_frac < c.PARTITION_FRAC_THRESH     \
+        or orig_mse < new_mse:
+        
         return (orig_mu, orig_std), None
     return ((left_mu, left_std), (right_mu, right_std)), new_mse
 

@@ -44,8 +44,8 @@ class RecursiveCompiler:
             if column in completed:
                 continue
 
-            fit, partition = make_partition(df[partition_column], 
-                df[column], num_partitions=5)
+            fit, partition = make_partition(df[column], 
+                df[partition_column], num_partitions=5)
             if fit is not None:
                 left_fit, right_fit = fit
                 if partition not in program["partitions"]:
@@ -64,22 +64,22 @@ class RecursiveCompiler:
                 }
                 
                 completed.add(column)
-                left_column  = program["partitions"][partition]["left"][column]
-                right_column = program["partitions"][partition]["right"][column]
+                left_subprogram  = program["partitions"][partition]["left"][column]
+                right_subprogram = program["partitions"][partition]["right"][column]
                 
                 left_partition  = df[df[partition_column] <= partition]
                 right_partition = df[df[partition_column] > partition]
 
                 if (depth + 1) < self.maxdepth:
-                    left_completed  = self._recursive_compile(left_column, left_partition, 
+                    left_completed  = self._recursive_compile(left_subprogram, left_partition, 
                         copy.deepcopy(completed), column, depth+1)
-                    right_completed = self._recursive_compile(right_column, right_partition, 
+                    right_completed = self._recursive_compile(right_subprogram, right_partition, 
                         copy.deepcopy(completed), column, depth+1)
 
                     # have to delete those variables that were only partitioned on one of the
                     # two sides (i.e. well partitioned on one side but not other)
-                    self._clean_column(left_completed - right_completed, left_column)
-                    self._clean_column(right_completed - left_completed, right_column)
+                    self._clean_column(left_completed - right_completed, left_subprogram)
+                    self._clean_column(right_completed - left_completed, right_subprogram)
 
                     # add only those that are were completed on both sides to the completed set
                     completed = completed.union(left_completed.intersection(right_completed))
