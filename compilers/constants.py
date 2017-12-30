@@ -10,5 +10,5 @@ INFORMATION_GAIN_THRESH = 0.0
 # the partition must contain at least 10% of the data to be considered valid
 PARTITION_FRAC_THRESH = 0.10
 
-# hard cutoff on the maximum number of levels of conditionals (i.e. in the tree)
-RECURSION_CUTOFF = 2
+# penalty for having too many partitions (avoids overfitting)
+PARTITION_PENALTY = .33
