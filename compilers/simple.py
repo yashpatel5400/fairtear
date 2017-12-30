@@ -1,6 +1,6 @@
 """
 __author__ = Yash Patel and Zachary Liu
-__name__   = helper.py
+__name__   = simple.py
 __description__ = SimpleCompiler class that uses a maximum conditional depth of 1
 and assumes only Gaussian distributed datasets
 """
@@ -12,16 +12,29 @@ import numpy as np
 from compilers.helper import make_partition, make_fit
 
 class SimpleCompiler:
-    """Simplest compiler, which assumes a maximum recursion depth of 1 and that all
-    the data are Gaussian distributed. 
-    """
-
     def __init__(self, incsv, outfr):
+        """Simplest compiler, which assumes a maximum recursion depth of 1
+        
+        Parameters
+        ----------
+        incsv : str
+            Filename of the csv where the input dataset is stored
+
+        outfr : str
+            Filename where the output (.fr file) is to be stored
+        """
         self.incsv = incsv
         self.outfr = outfr
         self.program = {}
 
     def compile(self):
+        """Compiles the csv dataset file into an internal "program" structure that is to
+        be outputted as an .fr file. Mutates the self.program attribute
+        
+        Parameters
+        ----------
+        None
+        """
         completed = set()
 
         df = pd.read_csv(self.incsv)
@@ -63,6 +76,36 @@ class SimpleCompiler:
         print("Compiled program tree!")
         
     def _recursive_frwrite(self, program, file_lines, num_tabs):
+        """Helper function that recursively compiles the selfprogram attribute into
+        a string to be written out to the .fr destination
+        
+        Parameters
+        ----------
+        program : Dict (complex)
+            Recursively defined structed, that abides by the form:
+
+            {
+                "fit" : FitFunction(),
+                "fit_type" : FitType,
+                "partitions" : {
+                    Float : subprogram,
+                    Float : subprogram,
+                    ...
+                    Float : subprogram
+                }
+            }
+
+            Where the FitFunction() is some set of parameters used to defined a probability
+            distribution (i.e. mean/std), FitType is type of fit used (i.e. "gaussian"),
+            and partitions are any values used as partitions for other variables. The
+            subprogram values assigned to partition keys are themselves this structure
+
+        file_lines : list of str
+            List of string that contain the fr-compiled strings to be outputted
+
+        num_tabs : int
+            Current level of tabbing in the .fr file
+        """
         tabs = "\t" * num_tabs
         for variable in program:
             file_lines.append("{}{} = {}{}\n".format(tabs, 
@@ -77,6 +120,13 @@ class SimpleCompiler:
                     self._recursive_frwrite(partitions["right"],file_lines, num_tabs=num_tabs+1)
 
     def frwrite(self):
+        """Writes the self.program attribute into the standard .fr file format to
+        be interpreted by FairSquare, saved to the outfr file destination
+        
+        Parameters
+        ----------
+        None
+        """
         print("Reading program tree into .fr format...")
         file_lines = ["def popModel():\n"]
         self._recursive_frwrite(self.program, file_lines, num_tabs=1)

@@ -9,13 +9,21 @@ import pandas as pd
 import numpy as np
 
 def generate_simple(num_samples=500):
-    """ethnicity = gaussian(0,100)
+    """Generates dataset according to the ex.fr model (saved to tests/simple.csv):
+
+    ethnicity = gaussian(0,100)
     colRank = gaussian(25,100)
     yExp = gaussian(10,25)
     if ethnicity > 10:
         colRank = colRank + 5
     sensitiveAttribute(ethnicity > 10)
+
+    Parameters
+    ----------
+    num_samples : int
+        Number of samples (i.e. rows) to be generated
     """
+
     print("Generating simple dataset...")
     columns = ["ethnicity", "colRank", "yExp", "expRank", "hire"]
     data = pd.DataFrame()
@@ -34,7 +42,10 @@ def generate_simple(num_samples=500):
     data.to_csv("tests/simple.csv", index=False)
 
 def generate_multi(num_samples=500):
-    """sex = gaussian(1,1)
+    """Generates dataset model where multiple levels of recursion are expected in the
+    output (saved to tests/multi.csv):
+
+    sex = gaussian(1,1)
     if sex < 1:
         capital_gain = gaussian(568.4105, 24248365.5428)
         if capital_gain < 7298.0000:
@@ -52,7 +63,13 @@ def generate_multi(num_samples=500):
             age = gaussian(38.2668, 187.2747)
             education_num = gaussian(10.0974, 7.1793)
     sensitiveAttribute(sex < 1)
+
+    Parameters
+    ----------
+    num_samples : int
+        Number of samples (i.e. rows) to be generated
     """
+
     print("Generating multi-level dataset...")
     columns = ["sex", "capital_gain", "age", "education_num"]
     data = pd.DataFrame()
@@ -88,6 +105,12 @@ def generate_multi(num_samples=500):
     data.to_csv("tests/multi.csv", index=False)
 
 def generate():
+    """Generates datasets and saves them into the tests/ directory
+
+    Parameters
+    ----------
+    None
+    """
     num_samples = 500
     generate_simple(num_samples)
     generate_multi(num_samples)
