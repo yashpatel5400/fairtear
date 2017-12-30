@@ -16,6 +16,20 @@ import math
 import compilers.constants as c
 
 def _plot_fit(dataset, data, mu, std):
+    """Plots the data and the Gaussian fit that was found. Results are saved
+    according to the dataset, i.e. to output/[dataset]_fit.png
+
+    Parameters
+    ----------
+    dataset : str
+        String for the filename of the output
+
+    data : Numpy array
+        Raw data to be visualized (as bins)
+
+    mu, std : float, float
+        Parameters defining the fit Gaussian distribution
+    """
     plt.hist(data, bins=25, normed=True, alpha=0.6, color='g')
 
     xmin, xmax = plt.xlim()
@@ -29,6 +43,17 @@ def _plot_fit(dataset, data, mu, std):
     plt.close()
 
 def _entropy(data, to_plot=True):
+    """Calculates entropy of the data once binned.
+
+    Parameters
+    ----------
+    data : Numpy array
+        Data for which entropy is to be calculated
+
+    to_plot : bool
+        Indicates whether the binning results are to be visualized. If True,
+        the outputs are saved to output/partitions.png
+    """
     num_partitions = 10
     counts, _ = np.histogram(data, 25)
     probabilities = counts / len(data)
@@ -41,6 +66,16 @@ def _entropy(data, to_plot=True):
     return scipy.stats.entropy(probabilities)
 
 def _gaussian_mse(data, fit):
+    """Calculates MSE (mean-square-error) from the Gaussian fit on the data.
+
+    Parameters
+    ----------
+    data : Numpy array
+        Data that was used to determine params for the Gaussian fit
+
+    fit : (float, float) tuple
+        Tuple of the (mean, std) of a Gaussian distribution
+    """
     counts, partitions = np.histogram(data, 25)
     mu, std = fit
     dist = scipy.stats.norm(mu, std)
@@ -49,6 +84,18 @@ def _gaussian_mse(data, fit):
     return np.square(counts - predicted_counts).mean()
 
 def _step_fit(data, max_partitions=6):
+    """Fits a step probability distribution to the data, i.e. distribution of the form
+    [(0,1,.4),(1,2,.6)], which means the values will be in (0,1) w/ 40% 
+    prob and (1,2) w/ 60%
+
+    Parameters
+    ----------
+    data : Numpy array
+        Data to be partitioned
+
+    max_partitions : int
+        Number of partitions in the final step result
+    """
     min_wtd_mse      = None
     best_counts      = None
     best_partitions  = None
@@ -74,7 +121,49 @@ def _step_fit(data, max_partitions=6):
         for i in range(len(best_partitions)-1)]
     return fit, min_wtd_mse
 
+def make_fit(data):
+    """Given data, determines which fit is best and returns the parameters
+    of this fit. Returns fit, fit_type, mse (mean-square-error) of whichever
+    the best is. Currently, fits of the types:
+
+    - gaussian : standard normal distribution (mu, std) params
+    - step : tuples of fixed probabilities across ranges, i.e.
+    [(0,1,.4),(1,2,.6)] means the values will be in (0,1) w/ 40% prob and (1,2) w/ 60%
+
+    Parameters
+    ----------
+    data : Numpy array
+        Data to be partitioned
+    """
+    gauss_fit = scipy.stats.norm.fit(data)
+    gauss_mse = _gaussian_mse(data, gauss_fit)
+    step_fit, step_mse = _step_fit(data, max_partitions=6)
+    if gauss_mse < step_mse:
+        return gauss_fit, "gaussian", gauss_mse
+    return step_fit, "step", step_mse
+
 def _partition(data, partition_data, partition):
+    """Given data, partition data, and the current partition, returns the
+    fit, fit_type, mse as the result. If mse is returned as None, this
+    indicates that no partition is to be made, i.e. data should NOT be
+    partitioned on the partition_data set. This occurs if insufficient
+    information gain is made, the old MSE was lower than new (partitioned)
+    MSE, or the partitions covered too little of the data. 
+
+    If a partition WAS made, the fit and fit_type are each themselves
+    tuples of the form (left_fit, right_fit) and (left_type, right_type).
+
+    Parameters
+    ----------
+    data : Numpy array
+        Data to be partitioned
+
+    partition_data : Numpy array
+        Array to be used for partitioning the data array
+    
+    partition : float
+        Value where the partition data is to be split
+    """
     orig_entropy = _entropy(data)
     left_partition  = data[partition_data <= partition]
     right_partition = data[partition_data > partition]
@@ -111,15 +200,24 @@ def _partition(data, partition_data, partition):
         return orig_fit, orig_type, None
     return (left_fit, right_fit), (left_type, right_type), new_mse
 
-def make_fit(data):
-    gauss_fit = scipy.stats.norm.fit(data)
-    gauss_mse = _gaussian_mse(data, gauss_fit)
-    step_fit, step_mse = _step_fit(data, max_partitions=6)
-    if gauss_mse < step_mse:
-        return gauss_fit, "gaussian", gauss_mse
-    return step_fit, "step", step_mse
-
 def make_partition(data, partition_data, num_partitions=5):
+    """Given data and the corresponding partitioning data, determines the best
+    partition of the data based on partition_data. Returns a tuple of
+    fit, fit_type, partition as the result. If fit is returned as None, this
+    indicates that no partition is to be made, i.e. data should NOT be
+    partitioned on the partition_data set
+    
+    Parameters
+    ----------
+    data : Numpy array
+        Data to be partitioned
+
+    partition_data : Numpy array
+        Array to be used for partitioning the data array
+    
+    num_partitions : int
+        Number of legal partitions to be considered
+    """
     partition_mean = np.mean(partition_data)
     partition_std  = np.std(partition_data)
     partitions = np.linspace(

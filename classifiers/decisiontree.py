@@ -7,13 +7,38 @@ structure of FairSquare
 
 class DTCompiler:
     def __init__(self, clf, features, targets, outfr):
+        """Constructs a DTCompiler object, to be used to extract the decision rules
+        from the decision tree scikit-learn classifier
+
+        Parameters
+        ----------
+        clf : scikit-learn Decision Tree Classifier
+            Classifier trained on predicting from features -> target. Should already be
+            trained when initializing
+
+        features : list of str
+            List of input features used to train clf. Must match columns from the input dataset
+
+        targets : str
+            Name of the clf target variable. Must match a column from the input dataset
+
+        outfr : str
+            Filename where the output (.fr file) is to be stored
+        """
         self.clf = clf
         self.features = features
         self.targets  = targets
         self.outfr = outfr
 
     def _extract(self, node_index):
-        """Structure of rules in a fit decision tree classifier"""
+        """Helper function to constructs structure of rules in a fit 
+        decision tree classifier (for a single layer)
+
+        Parameters
+        ----------
+        node_index : int
+            Index of the depth of the node being extracted from the decision tree
+        """
         node = {}
         if self.clf.tree_.children_left[node_index] == -1:  # indicates leaf
             count_labels = zip(self.clf.tree_.value[node_index, 0], self.targets)
@@ -30,10 +55,23 @@ class DTCompiler:
         return node
 
     def extract(self):
+        """Constructs structure of rules in a fit decision tree classifier
+
+        Parameters
+        ----------
+        None
+        """
         extracted = self._extract(node_index=0)
         return extracted
 
     def frwrite(self):
+        """Writes the internally stored self.extracted extracted decision tree
+        to the self.outfr file destination
+
+        Parameters
+        ----------
+        None
+        """
         print("Reading classifier into .fr format...")
         file_lines = ["def F():\n"]
         self._recursive_frwrite(self.program, file_lines, num_tabs=1)

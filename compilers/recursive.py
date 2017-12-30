@@ -1,6 +1,6 @@
 """
 __author__ = Yash Patel and Zachary Liu
-__name__   = helper.py
+__name__   = recursive.py
 __description__ = RecursiveCompiler class, implemented recursively, where the maximum
 recursion depth can be specified. This depth corresponds to the depth of the depth of
 conditionals in the final .fr file
@@ -14,29 +14,73 @@ import numpy as np
 from compilers.helper import make_partition, make_fit
 
 class RecursiveCompiler:
-    """Recursive compiler, which assumes a maximum recursion depth as specified and that all
-    the data are Gaussian distributed. 
-    """
     def __init__(self, incsv, outfr, maxdepth=2):
+        """Recursive compiler, which assumes a maximum recursion depth as specified
+        
+        Parameters
+        ----------
+        incsv : str
+            Filename of the csv where the input dataset is stored
+
+        outfr : str
+            Filename where the output (.fr file) is to be stored
+
+        maxdepth : int
+            Integer of the maximum depth in the final output (i.e. of conditionals)
+        """
         self.incsv = incsv
         self.outfr = outfr
         self.maxdepth = maxdepth
         self.program = {}
 
-    def _clean_column(self, to_delete, column):
+    def _clean_column(self, to_delete, program):
+        """Given a list of partitions to be deleted from the program, cleans the 
+        entries and deletes partitions if rendered empty
+        
+        Parameters
+        ----------
+        to_delete : list of str
+            List of the partitions to delete from the program
+
+        program : Dict (complex)
+            Recursively defined structed (refer to _recursive_frwrite below for full
+            documentation on structure)
+        """
         partitions_to_delete = []
-        for partition in column["partitions"]:
+        for partition in program["partitions"]:
             for variable in to_delete:
-                del column["partitions"][partition]["left"][variable]
-                del column["partitions"][partition]["right"][variable]
+                del program["partitions"][partition]["left"][variable]
+                del program["partitions"][partition]["right"][variable]
             
-            if len(column["partitions"][partition]["left"]) == 0:
+            if len(program["partitions"][partition]["left"]) == 0:
                 partitions_to_delete.append(partition)
         
         for partition in partitions_to_delete:
-            del column["partitions"][partition]
+            del program["partitions"][partition]
 
     def _recursive_compile(self, program, df, completed, partition_column, depth):
+        """Recursive helper function to compile the program from the dataset. The
+        parameters are used in the recursive calls. Returns the completed set, which
+        contains the columns of the input dataframe that have been processed thus far
+        
+        Parameters
+        ----------
+        program : dict (complex)
+            Recursively defined structed (refer to _recursive_frwrite below for full
+            documentation on structure)
+        
+        df : Pandas dataframe
+            Dataframe object of the input csv file
+
+        completed : set of str
+            Hashset of strings corresponding to the columns that have been processed
+        
+        partition_column : str
+            Name of the column to be used for partitioning the dataframe/dataset
+
+        depth : int
+            Current depth of recursion (will be terminated if this value exceeds maxdepth)
+        """
         if depth >= self.maxdepth:
             return completed
 
@@ -89,6 +133,13 @@ class RecursiveCompiler:
         return completed
 
     def compile(self):
+        """Compiles the csv dataset file into an internal "program" structure that is to
+        be outputted as an .fr file. Mutates the self.program attribute
+        
+        Parameters
+        ----------
+        None
+        """
         df = pd.read_csv(self.incsv)
         completed = set()
 
@@ -112,6 +163,36 @@ class RecursiveCompiler:
         print("Compiled program tree!")
         
     def _recursive_frwrite(self, program, file_lines, num_tabs):
+        """Helper function that recursively compiles the selfprogram attribute into
+        a string to be written out to the .fr destination
+        
+        Parameters
+        ----------
+        program : Dict (complex)
+            Recursively defined structed, that abides by the form:
+
+            {
+                "fit" : FitFunction(),
+                "fit_type" : FitType,
+                "partitions" : {
+                    Float : subprogram,
+                    Float : subprogram,
+                    ...
+                    Float : subprogram
+                }
+            }
+
+            Where the FitFunction() is some set of parameters used to defined a probability
+            distribution (i.e. mean/std), FitType is type of fit used (i.e. "gaussian"),
+            and partitions are any values used as partitions for other variables. The
+            subprogram values assigned to partition keys are themselves this structure
+
+        file_lines : list of str
+            List of string that contain the fr-compiled strings to be outputted
+
+        num_tabs : int
+            Current level of tabbing in the .fr file
+        """
         tabs = "\t" * num_tabs
         for variable in program:
             file_lines.append("{}{} = {}{}\n".format(tabs, 
@@ -126,6 +207,13 @@ class RecursiveCompiler:
                     self._recursive_frwrite(partitions["right"],file_lines, num_tabs=num_tabs+1)
 
     def frwrite(self):
+        """Writes the self.program attribute into the standard .fr file format to
+        be interpreted by FairSquare, saved to the outfr file destination
+        
+        Parameters
+        ----------
+        None
+        """
         print("Reading program tree into .fr format...")
         file_lines = ["def popModel():\n"]
         self._recursive_frwrite(self.program, file_lines, num_tabs=1)
