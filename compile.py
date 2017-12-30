@@ -5,50 +5,28 @@ __description__ = Constructs the models that are to be used for the final .fr
 file generation
 """
 
+import pickle
+
 from compilers.simple import SimpleCompiler
 from compilers.recursive import RecursiveCompiler
+from classifiers.decisiontree import DTCompiler
 
-def test_compilers():
-    sc = SimpleCompiler(incsv="tests/ex.csv", outfr="output/simple_ex.fr")
-    sc.compile()
-    sc.frwrite()
-
-    rc = RecursiveCompiler(incsv="tests/ex.csv", outfr="output/recur_ex.fr", maxdepth=2)
+def compile(dataset, sensitive_attrs, clf_pickle, features, targets, outfr):
+    rc = RecursiveCompiler(incsv=dataset, outfr=outfr, maxdepth=2)
     rc.compile()
+
+    clf = pickle.loads(clf_pickle)
+    dtc = DTCompiler(clf=clf, features=features, targets=targets, outfr=outfr)
+    dtc.extract()
+
     rc.frwrite()
+    dtc.frwrite()
 
 if __name__ == "__main__":
-    test_compilers()
-
-    fr_input = """
-    ethnicity = gaussian(0,100)
-    colRank = gaussian(25,100)
-    yExp = gaussian(10,25)
-    if ethnicity > 10:
-        colRank = colRank + 5"""
-
-    ex_output = {
-        "ethnicity" : {
-            "fit" : (0,100),
-            "partitions" : {
-                10 : {
-                    "left" : {
-                        "colRank" : {
-                            "fit" : (25,100),
-                            "partitions" : {}
-                        }
-                    },
-                    "right" : {
-                        "colRank" : {
-                            "fit" : (30,100),
-                            "partitions" : {}
-                        }
-                    }
-                }
-            }
-        },
-        "yExp" : {
-            "fit" : (10,25),
-            "partitions" : {}
-        }
-    }
+    dataset         = 
+    classifier      = 
+    sensitive_attrs = 
+    features        = 
+    targets         = 
+    outfr           = "output/recur_ex.fr"
+    compile(dataset, sensitive_attrs, clf_pickle, features, targets, outfr)

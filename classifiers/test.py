@@ -4,6 +4,7 @@ __name__   = test.py
 __description__ = Testing script for the classifier compilers
 """
 
+import pprint
 import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
@@ -15,7 +16,7 @@ def test_decision_tree(X, y, X_labels, y_label):
     clf.fit(X, y)
     dt_compiler = DTCompiler(clf, X_labels, y_label)
     result = dt_compiler.extract()
-    print(result)
+    pprint.pprint(result)
 
 def test():
     data = pd.read_csv("tests/simple.csv")
