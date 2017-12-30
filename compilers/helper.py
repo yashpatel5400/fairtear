@@ -47,6 +47,30 @@ def _gaussian_mse(data, mu, std):
         for i in range(len(partitions)-1)])
     return np.square(counts - predicted_counts).mean()
 
+def _step_fit(data, max_partitions=6):
+    min_avg_mse      = None
+    best_counts      = None
+    best_partitions  = None
+
+    for num_partitions in range(1,max_partitions):
+        counts, partitions = np.histogram(data, num_partitions)
+        total_mse = 0
+        for i in range(len(partitions)-1):
+            in_part = data[(partitions[i] <= data) & (data < partitions[i+1])]
+            partition_mid = np.mean([partitions[i],partitions[i+1]])
+            total_mse += np.square(in_part - partition_mid).mean()
+        avg_mse = total_mse / num_partitions
+
+        if min_avg_mse is None or avg_mse < min_avg_mse:
+            min_avg_mse = avg_mse
+            best_counts = counts
+            best_partitions = partitions
+
+    probabilities = best_counts / len(data)
+    mse = min_avg_mse * len(best_counts)
+    fit = list(zip(best_partitions, probabilities))
+    return fit, mse
+
 def _partition(data, partition_data, partition):
     orig_entropy = _entropy(data)
     left_partition  = data[partition_data <= partition]
@@ -59,20 +83,22 @@ def _partition(data, partition_data, partition):
         right_frac * _entropy(right_partition)
     information_gain = orig_entropy - new_entropy
     
-    mus, stds, mses = [], [], []
+    fits, mses = [], []
     for values, dataset in zip([data, left_partition, right_partition], 
         ["original", "left", "right"]):
         
-        mu, std = scipy.stats.norm.fit(values)
-        _plot_fit(dataset, values, mu, std)
-        mse = _gaussian_mse(values, mu, std)
+        gauss_fit = scipy.stats.norm.fit(values)
+        gauss_mse = _gaussian_mse(values, mu, std)
+        step_fit, step_mse = _step_fit(data, max_partitions=6)
 
-        mus.append(mu)
-        stds.append(std)
-        mses.append(mse)
+        if gauss_mse < step_mse:
+            fits.append(gauss_fit)
+            mses.append(gauss_mse)
+        else:
+            fits.append(step_fit)
+            mses.append(step_mse)
 
-    orig_mu, left_mu, right_mu    = mus
-    orig_std, left_std, right_std = stds
+    orig_fit, left_fit, right_fit = fits
     orig_mse, left_mse, right_mse = mses
     new_mse = left_frac * left_mse + right_frac * right_mse
 
@@ -84,8 +110,8 @@ def _partition(data, partition_data, partition):
         or right_frac < c.PARTITION_FRAC_THRESH     \
         or orig_mse < new_mse:
         
-        return (orig_mu, orig_std), None
-    return ((left_mu, left_std), (right_mu, right_std)), new_mse
+        return orig_fit, None
+    return (left_fit, right_fit), new_mse
 
 def make_partition(data, partition_data, num_partitions=5):
     partition_mean = np.mean(partition_data)
