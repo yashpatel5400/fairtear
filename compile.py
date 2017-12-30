@@ -23,7 +23,7 @@ def compile(dataset, sensitive_attrs, clf_pickle, features, targets, outfr):
     dtc.frwrite()
 
 if __name__ == "__main__":
-    dataset         = 
+    dataset         = "tests/simple.csv"
     classifier      = 
     sensitive_attrs = 
     features        = 
