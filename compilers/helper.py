@@ -40,8 +40,9 @@ def _entropy(data, to_plot=True):
 
     return scipy.stats.entropy(probabilities)
 
-def _gaussian_mse(data, mu, std):
+def _gaussian_mse(data, fit):
     counts, partitions = np.histogram(data, 25)
+    mu, std = fit
     dist = scipy.stats.norm(mu, std)
     predicted_counts = np.array([dist.pdf(np.mean([partitions[i],partitions[i+1]])) * len(data) 
         for i in range(len(partitions)-1)])
@@ -68,7 +69,8 @@ def _step_fit(data, max_partitions=6):
 
     probabilities = best_counts / len(data)
     mse = min_avg_mse * len(best_counts)
-    fit = list(zip(best_partitions, probabilities))
+    fit = [(best_partitions[i],best_partitions[i+1],probabilities[i]) 
+        for i in range(len(best_partitions)-1)]
     return fit, mse
 
 def _partition(data, partition_data, partition):
@@ -83,23 +85,18 @@ def _partition(data, partition_data, partition):
         right_frac * _entropy(right_partition)
     information_gain = orig_entropy - new_entropy
     
-    fits, mses = [], []
+    fits, fit_types, mses = [], [], []
     for values, dataset in zip([data, left_partition, right_partition], 
         ["original", "left", "right"]):
         
-        gauss_fit = scipy.stats.norm.fit(values)
-        gauss_mse = _gaussian_mse(values, mu, std)
-        step_fit, step_mse = _step_fit(data, max_partitions=6)
+        fit, fit_type, mse = make_fit(data)
+        fits.append(fit)
+        fit_types.append(fit_type)
+        mses.append(mse)
 
-        if gauss_mse < step_mse:
-            fits.append(gauss_fit)
-            mses.append(gauss_mse)
-        else:
-            fits.append(step_fit)
-            mses.append(step_mse)
-
-    orig_fit, left_fit, right_fit = fits
-    orig_mse, left_mse, right_mse = mses
+    orig_fit, left_fit, right_fit    = fits
+    orig_type, left_type, right_type = fit_types
+    orig_mse, left_mse, right_mse    = mses
     new_mse = left_frac * left_mse + right_frac * right_mse
 
     print("Information gain: {}".format(information_gain))
@@ -110,8 +107,16 @@ def _partition(data, partition_data, partition):
         or right_frac < c.PARTITION_FRAC_THRESH     \
         or orig_mse < new_mse:
         
-        return orig_fit, None
-    return (left_fit, right_fit), new_mse
+        return orig_fit, orig_type, None
+    return (left_fit, right_fit), (left_type, right_type), new_mse
+
+def make_fit(data):
+    gauss_fit = scipy.stats.norm.fit(data)
+    gauss_mse = _gaussian_mse(data, gauss_fit)
+    step_fit, step_mse = _step_fit(data, max_partitions=6)
+    if gauss_mse < step_mse:
+        return gauss_fit, "gaussian", gauss_mse
+    return step_fit, "step", step_mse
 
 def make_partition(data, partition_data, num_partitions=5):
     partition_mean = np.mean(partition_data)
@@ -123,13 +128,15 @@ def make_partition(data, partition_data, num_partitions=5):
 
     min_mse  = None
     best_fit = None
+    best_fit_type  = None
     best_partition = None
 
     for partition in partitions:
-        fit, mse = _partition(data, partition_data, partition)
+        fit, fit_type, mse = _partition(data, partition_data, partition)
         if mse is not None:
             if min_mse is None or mse < min_mse:
                 min_mse = mse
                 best_fit = fit
+                best_fit_type  = fit_type
                 best_partition = partition
-    return best_fit, best_partition
+    return best_fit, best_fit_type, best_partition
