@@ -49,7 +49,7 @@ def _gaussian_mse(data, fit):
     return np.square(counts - predicted_counts).mean()
 
 def _step_fit(data, max_partitions=6):
-    min_avg_mse      = None
+    min_wtd_mse      = None
     best_counts      = None
     best_partitions  = None
 
@@ -60,18 +60,19 @@ def _step_fit(data, max_partitions=6):
             in_part = data[(partitions[i] <= data) & (data < partitions[i+1])]
             partition_mid = np.mean([partitions[i],partitions[i+1]])
             total_mse += np.square(in_part - partition_mid).mean()
-        avg_mse = total_mse / num_partitions
 
-        if min_avg_mse is None or avg_mse < min_avg_mse:
-            min_avg_mse = avg_mse
+        avg_mse = np.mean(total_mse)
+        wtd_mse = total_mse + c.PARTITION_PENALTY * avg_mse * num_partitions
+
+        if min_wtd_mse is None or wtd_mse < min_wtd_mse:
+            min_wtd_mse = wtd_mse
             best_counts = counts
             best_partitions = partitions
 
     probabilities = best_counts / len(data)
-    mse = min_avg_mse * len(best_counts)
     fit = [(best_partitions[i],best_partitions[i+1],probabilities[i]) 
         for i in range(len(best_partitions)-1)]
-    return fit, mse
+    return fit, min_wtd_mse
 
 def _partition(data, partition_data, partition):
     orig_entropy = _entropy(data)
@@ -89,7 +90,7 @@ def _partition(data, partition_data, partition):
     for values, dataset in zip([data, left_partition, right_partition], 
         ["original", "left", "right"]):
         
-        fit, fit_type, mse = make_fit(data)
+        fit, fit_type, mse = make_fit(values)
         fits.append(fit)
         fit_types.append(fit_type)
         mses.append(mse)
