@@ -28,8 +28,7 @@ def generate_simple(num_samples=500):
     data["colRank"][data["ethnicity"] > 10] += 5
 
     data["expRank"] = data["yExp"] - data["colRank"]
-    data["hire"][data["colRank"] <= 5] += 1
-    data["hire"][data["expRank"] > -5] += 1
+    data["hire"][(data["colRank"] <= 5) | (data["expRank"] > -5)] += 1
     data = data.drop(["expRank"], axis=1)
 
     data.to_csv("tests/simple.csv", index=False)
