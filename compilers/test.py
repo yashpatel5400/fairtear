@@ -8,7 +8,7 @@ file generation
 from compilers.simple import SimpleCompiler
 from compilers.recursive import RecursiveCompiler
 
-def test_compilers(incsv, sensitive_attrs):
+def test_compilers(incsv, sensitive_attrs, qualified_attrs):
     """Tests the dataset compilers in the compilers/ directory pointed at by the
     input csv parameter provided.
     
@@ -16,19 +16,33 @@ def test_compilers(incsv, sensitive_attrs):
     ----------
     dataset : str
         Filename of the csv where the input dataset is stored
+
+    sensitive_attrs : list of (str,str,int) tuples
+        List of the names of attributes to be considered sensitive. Each attr has a
+        "threshold" value, where we wish to mask whether the an individual's sensitive 
+        attribute in relation to that threshold based on the 2nd param of the tuple. 
+        The second param MUST either be ">" or "<", which respectively mean to hide 
+        being below or exceeding a given threshold value. For example, if 
+        the attribute is sex (step([0,1,.5],[1,2,.5])), the threshold can be set to 1
+        w/ "<" to prevent us from knowing if (sex < 1)
+
+    qualified_attrs : list of (str,str,int) tuples
+        Same structure as sensitive_attrs. Used to qualify only particular members of the
+        population, i.e. those satisfying the qualified conditionals. For example, if doing
+        ("age",">",18), only those people of > 18 age will be considered in the population
     """
     sc = SimpleCompiler(incsv=incsv, outfr="output/simple_ex.fr", 
-        sensitive_attrs=sensitive_attrs)
+        sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     sc.compile()
     sc.frwrite()
 
-    rc = RecursiveCompiler(incsv=incsv, outfr="output/recur_ex.fr", 
-        sensitive_attrs=sensitive_attrs, maxdepth=2)
+    rc = RecursiveCompiler(incsv=incsv, outfr="output/recur_ex.fr", maxdepth=2,
+        sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
     rc.frwrite()
 
 if __name__ == "__main__":
-    test_compilers("tests/ex.csv", [("ethnicity",">",10)])
+    test_compilers("tests/ex.csv", [("ethnicity",">",10)],[])
 
     fr_input = """
     ethnicity = gaussian(0,100)

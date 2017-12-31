@@ -12,7 +12,7 @@ import numpy as np
 from compilers.helper import make_partition, make_fit
 
 class SimpleCompiler:
-    def __init__(self, incsv, outfr, sensitive_attrs):
+    def __init__(self, incsv, outfr, sensitive_attrs, qualified_attrs):
         """Simplest compiler, which assumes a maximum recursion depth of 1
         
         Parameters
@@ -31,10 +31,16 @@ class SimpleCompiler:
             being below or exceeding a given threshold value. For example, if 
             the attribute is sex (step([0,1,.5],[1,2,.5])), the threshold can be set to 1
             w/ "<" to prevent us from knowing if (sex < 1)
+
+        qualified_attrs : list of (str,str,int) tuples
+            Same structure as sensitive_attrs. Used to qualify only particular members of the
+            population, i.e. those satisfying the qualified conditionals. For example, if doing
+            ("age",">",18), only those people of > 18 age will be considered in the population
         """
         self.incsv = incsv
         self.outfr = outfr
         self.sensitive_attrs = sensitive_attrs
+        self.qualified_attrs = qualified_attrs
         self.program = {}
 
     def compile(self):
@@ -146,6 +152,9 @@ class SimpleCompiler:
         for sensitive_attr, comp, thresh in self.sensitive_attrs:
             file_lines.append("\tsensitiveAttribute({} {} {})\n".format(
                 sensitive_attr, comp, thresh))
+        for qualified_attr, comp, thresh in self.qualified_attrs:
+            file_lines.append("\tqualified({} {} {})\n".format(
+                qualified_attr, comp, thresh))
 
         file_lines.append("\n")
         print("Writing final output...")
