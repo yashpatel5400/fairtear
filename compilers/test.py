@@ -8,7 +8,7 @@ file generation
 from compilers.simple import SimpleCompiler
 from compilers.recursive import RecursiveCompiler
 
-def test_compilers(incsv):
+def test_compilers(incsv, sensitive_attrs):
     """Tests the dataset compilers in the compilers/ directory pointed at by the
     input csv parameter provided.
     
@@ -17,23 +17,26 @@ def test_compilers(incsv):
     dataset : str
         Filename of the csv where the input dataset is stored
     """
-    sc = SimpleCompiler(incsv=incsv, outfr="output/simple_ex.fr")
+    sc = SimpleCompiler(incsv=incsv, outfr="output/simple_ex.fr", 
+        sensitive_attrs=sensitive_attrs)
     sc.compile()
     sc.frwrite()
 
-    rc = RecursiveCompiler(incsv=incsv, outfr="output/recur_ex.fr", maxdepth=2)
+    rc = RecursiveCompiler(incsv=incsv, outfr="output/recur_ex.fr", 
+        sensitive_attrs=sensitive_attrs, maxdepth=2)
     rc.compile()
     rc.frwrite()
 
 if __name__ == "__main__":
-    test_compilers("tests/ex.csv")
+    test_compilers("tests/ex.csv", [("ethnicity",">",10)])
 
     fr_input = """
     ethnicity = gaussian(0,100)
     colRank = gaussian(25,100)
     yExp = gaussian(10,25)
     if ethnicity > 10:
-        colRank = colRank + 5"""
+        colRank = colRank + 5
+    sensitiveAttribute(ethnicity > 10)"""
 
     ex_output = {
         "ethnicity" : {
