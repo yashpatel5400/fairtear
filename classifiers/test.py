@@ -25,7 +25,7 @@ def _data_from_csv(incsv):
     mat = np.transpose(data.as_matrix())
 
     X_labels = data.columns[:3]
-    y_label  = data.columns[3]
+    y_label  = [1,0]
 
     X = np.transpose(mat[:3])
     y = mat[3]
@@ -65,9 +65,9 @@ def _test_decision_tree(X_labels, y_label):
     """
     pickle_in = open("classifiers/examples/decisiontree.pickle","rb")
     clf = pickle.load(pickle_in)
-    dt_compiler = DTCompiler(clf, X_labels, y_label, "ex.fr")
-    result = dt_compiler.extract()
-    pprint.pprint(result)
+    dt_compiler = DTCompiler(clf, X_labels, y_label, "output/ex.fr")
+    dt_compiler.extract()
+    dt_compiler.frwrite()
 
 def test_clfs(X_labels, y_label):
     """Tests the extraction of rules from the classifiers, using the feature
