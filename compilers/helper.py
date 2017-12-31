@@ -65,24 +65,6 @@ def _entropy(data, to_plot=True):
 
     return scipy.stats.entropy(probabilities)
 
-def _gaussian_mse(data, fit):
-    """Calculates MSE (mean-square-error) from the Gaussian fit on the data.
-
-    Parameters
-    ----------
-    data : Numpy array
-        Data that was used to determine params for the Gaussian fit
-
-    fit : (float, float) tuple
-        Tuple of the (mean, std) of a Gaussian distribution
-    """
-    counts, partitions = np.histogram(data, 25)
-    mu, std = fit
-    dist = scipy.stats.norm(mu, std)
-    predicted_counts = np.array([dist.pdf(np.mean([partitions[i],partitions[i+1]])) * len(data) 
-        for i in range(len(partitions)-1)])
-    return np.square(counts - predicted_counts).mean()
-
 def _step_fit(data, max_partitions=6):
     """Fits a step probability distribution to the data, i.e. distribution of the form
     [(0,1,.4),(1,2,.6)], which means the values will be in (0,1) w/ 40% 
@@ -96,30 +78,35 @@ def _step_fit(data, max_partitions=6):
     max_partitions : int
         Number of partitions in the final step result
     """
-    min_wtd_mse      = None
-    best_counts      = None
+    max_gof          = None
+    best_probs       = None
     best_partitions  = None
 
     for num_partitions in range(1,max_partitions):
         counts, partitions = np.histogram(data, num_partitions)
-        total_mse = 0
-        for i in range(len(partitions)-1):
-            in_part = data[(partitions[i] <= data) & (data < partitions[i+1])]
-            partition_mid = np.mean([partitions[i],partitions[i+1]])
-            total_mse += np.square(in_part - partition_mid).mean()
+        probs = counts / len(data)
+        
+        def _step_cdf(x):
+            cdf = 0.0
+            for i in range(len(partitions)):
+                if partitions[i] < x:
+                    if x >= partitions[i+1]:
+                        cdf += probs[i]
+                    else:
+                        cdf += ((x - partitions[i]) / (partitions[i+1] - partitions[i])) \
+                            * probs[i]
+            return cdf
+        step_cdf = np.vectorize(_step_cdf)
+        step_gof, _ = scipy.stats.kstest(data, step_cdf)
 
-        avg_mse = np.mean(total_mse)
-        wtd_mse = total_mse + c.PARTITION_PENALTY * avg_mse * num_partitions
-
-        if min_wtd_mse is None or wtd_mse < min_wtd_mse:
-            min_wtd_mse = wtd_mse
-            best_counts = counts
+        if max_gof is None or max_gof < step_gof:
+            max_gof = step_gof
+            best_probs = probs
             best_partitions = partitions
 
-    probabilities = best_counts / len(data)
-    fit = [(best_partitions[i],best_partitions[i+1],probabilities[i]) 
+    fit = [(best_partitions[i],best_partitions[i+1],best_probs[i]) 
         for i in range(len(best_partitions)-1)]
-    return fit, min_wtd_mse
+    return fit, max_gof
 
 def make_fit(data):
     """Given data, determines which fit is best and returns the parameters
@@ -136,11 +123,11 @@ def make_fit(data):
         Data to be partitioned
     """
     gauss_fit = scipy.stats.norm.fit(data)
-    gauss_mse = _gaussian_mse(data, gauss_fit)
-    step_fit, step_mse = _step_fit(data, max_partitions=6)
-    if gauss_mse < step_mse:
-        return gauss_fit, "gaussian", gauss_mse
-    return step_fit, "step", step_mse
+    gauss_gof, _ = scipy.stats.kstest(data, "norm", gauss_fit)
+    step_fit, step_gof = _step_fit(data, max_partitions=6)
+    if gauss_gof > step_gof:
+        return gauss_fit, "gaussian", gauss_gof
+    return step_fit, "step", step_gof
 
 def _partition(data, partition_data, partition):
     """Given data, partition data, and the current partition, returns the
@@ -175,30 +162,34 @@ def _partition(data, partition_data, partition):
         right_frac * _entropy(right_partition)
     information_gain = orig_entropy - new_entropy
     
-    fits, fit_types, mses = [], [], []
-    for values, dataset in zip([data, left_partition, right_partition], 
-        ["original", "left", "right"]):
-        
-        fit, fit_type, mse = make_fit(values)
-        fits.append(fit)
-        fit_types.append(fit_type)
-        mses.append(mse)
-
-    orig_fit, left_fit, right_fit    = fits
-    orig_type, left_type, right_type = fit_types
-    orig_mse, left_mse, right_mse    = mses
-    new_mse = left_frac * left_mse + right_frac * right_mse
-
-    print("Information gain: {}".format(information_gain))
-    print("MSEs: {} (Original) ; {} (New)".format(orig_mse, new_mse))
+    orig_fit, orig_type, orig_gof = make_fit(data)
 
     if information_gain < c.INFORMATION_GAIN_THRESH \
         or left_frac  < c.PARTITION_FRAC_THRESH     \
-        or right_frac < c.PARTITION_FRAC_THRESH     \
-        or orig_mse < new_mse:
-        
+        or right_frac < c.PARTITION_FRAC_THRESH: 
+
         return orig_fit, orig_type, None
-    return (left_fit, right_fit), (left_type, right_type), new_mse
+
+    # ===================== Fits on the partitioned data ===================== #
+    fits, fit_types, gofs = [orig_fit], [orig_type], [orig_gof]
+    for values in [left_partition, right_partition]:
+        fit, fit_type, gof = make_fit(values)
+        
+        fits.append(fit)
+        fit_types.append(fit_type)
+        gofs.append(gof)
+
+    orig_fit, left_fit, right_fit    = fits
+    orig_type, left_type, right_type = fit_types
+    orig_gof, left_gof, right_gof    = gofs
+    new_gof = left_frac * left_gof + right_frac * right_gof
+
+    print("Information gain: {}".format(information_gain))
+    print("GOFs: {} (Original) ; {} (New)".format(orig_gof, new_gof))
+
+    if orig_gof > new_gof: 
+        return orig_fit, orig_type, None
+    return (left_fit, right_fit), (left_type, right_type), new_gof
 
 def make_partition(data, partition_data, num_partitions=5):
     """Given data and the corresponding partitioning data, determines the best
@@ -225,16 +216,16 @@ def make_partition(data, partition_data, num_partitions=5):
         partition_mean + partition_std,
         num_partitions)
 
-    min_mse  = None
+    max_gof  = None
     best_fit = None
     best_fit_type  = None
     best_partition = None
 
     for partition in partitions:
-        fit, fit_type, mse = _partition(data, partition_data, partition)
-        if mse is not None:
-            if min_mse is None or mse < min_mse:
-                min_mse = mse
+        fit, fit_type, gof = _partition(data, partition_data, partition)
+        if gof is not None:
+            if max_gof is None or gof > max_gof:
+                max_gof = gof
                 best_fit = fit
                 best_fit_type  = fit_type
                 best_partition = partition

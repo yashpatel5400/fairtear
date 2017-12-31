@@ -5,7 +5,7 @@ __description__ = Compiler-level constants
 """
 
 # empirically determined value of where to stop recursion/splitting of the tree
-INFORMATION_GAIN_THRESH = 0.0
+INFORMATION_GAIN_THRESH = 0.10
 
 # the partition must contain at least 10% of the data to be considered valid
 PARTITION_FRAC_THRESH = 0.10
