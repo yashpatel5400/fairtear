@@ -14,7 +14,7 @@ import numpy as np
 from compilers.helper import make_partition, make_fit
 
 class RecursiveCompiler:
-    def __init__(self, incsv, outfr, sensitive_attrs, maxdepth=2):
+    def __init__(self, incsv, outfr, maxdepth, sensitive_attrs, qualified_attrs):
         """Recursive compiler, which assumes a maximum recursion depth as specified
         
         Parameters
@@ -25,6 +25,9 @@ class RecursiveCompiler:
         outfr : str
             Filename where the output (.fr file) is to be stored
     
+        maxdepth : int
+            Integer of the maximum depth in the final output (i.e. of conditionals)
+
         sensitive_attrs : list of (str,str,int) tuples
             List of the names of attributes to be considered sensitive. Each attr has a
             "threshold" value, where we wish to mask whether the an individual's sensitive 
@@ -34,13 +37,16 @@ class RecursiveCompiler:
             the attribute is sex (step([0,1,.5],[1,2,.5])), the threshold can be set to 1
             w/ "<" to prevent us from knowing if (sex < 1)
 
-        maxdepth : int
-            Integer of the maximum depth in the final output (i.e. of conditionals)
+        qualified_attrs : list of (str,str,int) tuples
+            Same structure as sensitive_attrs. Used to qualify only particular members of the
+            population, i.e. those satisfying the qualified conditionals. For example, if doing
+            ("age",">",18), only those people of > 18 age will be considered in the population
         """
         self.incsv = incsv
         self.outfr = outfr
-        self.sensitive_attrs = sensitive_attrs
         self.maxdepth = maxdepth
+        self.sensitive_attrs = sensitive_attrs
+        self.qualified_attrs = qualified_attrs
         self.program = {}
 
     def _clean_column(self, to_delete, program):
@@ -233,6 +239,9 @@ class RecursiveCompiler:
         for sensitive_attr, comp, thresh in self.sensitive_attrs:
             file_lines.append("\tsensitiveAttribute({} {} {})\n".format(
                 sensitive_attr, comp, thresh))
+        for qualified_attr, comp, thresh in self.qualified_attrs:
+            file_lines.append("\tqualified({} {} {})\n".format(
+                qualified_attr, comp, thresh))
 
         file_lines.append("\n")
         print("Writing final output...")

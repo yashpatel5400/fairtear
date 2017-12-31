@@ -9,7 +9,7 @@ from sklearn.tree import _tree
 import numpy as np
 
 class DTCompiler:
-    def __init__(self, clf, features, target, outfr):
+    def __init__(self, clf, features, target, outfr, fairness_targets):
         """Constructs a DTCompiler object, to be used to extract the decision rules
         from the decision tree scikit-learn classifier
 
@@ -27,11 +27,18 @@ class DTCompiler:
 
         outfr : str
             Filename where the output (.fr file) is to be stored
+
+        fairness_targets : list of (str,str,int) tuples
+            List of the names of attributes to set desired fairness criterion. Each attr has a
+            "threshold" value, and the second param MUST either be ">" or "<". Here 
+            ("hire",">",0.5) corresponds to wanting to ensure the population satisfies hire > 0.5
+            independent of sensitive attributes
         """
         self.clf = clf
         self.features = features
         self.target   = target
         self.outfr    = outfr
+        self.fairness_targets = fairness_targets
         self.extracted = None
 
     def _extract(self, node_index):
@@ -96,8 +103,12 @@ class DTCompiler:
         print("Reading classifier into .fr format...")
         file_lines = ["def F():\n"]
         self._recursive_frwrite(self.extracted, file_lines, num_tabs=1)
-        file_lines.append("\n")
+        
+        for fairness_target, comp, thresh in self.fairness_targets:
+            file_lines.append("\tfairnessTarget({} {} {})\n".format(
+                fairness_target, comp, thresh))
 
+        file_lines.append("\n")
         print("Writing final output...")
 
         if new:

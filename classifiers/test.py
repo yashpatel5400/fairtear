@@ -65,7 +65,9 @@ def _test_decision_tree(X_labels, y_label):
     """
     pickle_in = open("classifiers/examples/decisiontree.pickle","rb")
     clf = pickle.load(pickle_in)
-    dt_compiler = DTCompiler(clf, X_labels, y_label, "output/ex.fr")
+    fairness_targets = [("hire",">",0.5)]
+
+    dt_compiler = DTCompiler(clf, X_labels, y_label, "output/ex.fr", fairness_targets)
     dt_compiler.extract()
     dt_compiler.frwrite()
 
