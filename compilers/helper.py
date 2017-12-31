@@ -95,10 +95,12 @@ def _step_fit(data, max_partitions=6):
                     else:
                         cdf += ((x - partitions[i]) / (partitions[i+1] - partitions[i])) \
                             * probs[i]
+                else: break
             return cdf
         step_cdf = np.vectorize(_step_cdf)
         step_gof, _ = scipy.stats.kstest(data, step_cdf)
 
+        print("Partitions: {}; GOF: {}".format(num_partitions, step_gof))
         if max_gof is None or max_gof < step_gof:
             max_gof = step_gof
             best_probs = probs
@@ -125,6 +127,8 @@ def make_fit(data):
     gauss_fit = scipy.stats.norm.fit(data)
     gauss_gof, _ = scipy.stats.kstest(data, "norm", gauss_fit)
     step_fit, step_gof = _step_fit(data, max_partitions=6)
+
+    print("Gaussian GOF: {}, Step GOF: {}".format(gauss_gof, step_gof))
     if gauss_gof > step_gof:
         return gauss_fit, "gaussian", gauss_gof
     return step_fit, "step", step_gof
@@ -174,7 +178,7 @@ def _partition(data, partition_data, partition):
     fits, fit_types, gofs = [orig_fit], [orig_type], [orig_gof]
     for values in [left_partition, right_partition]:
         fit, fit_type, gof = make_fit(values)
-        
+
         fits.append(fit)
         fit_types.append(fit_type)
         gofs.append(gof)
