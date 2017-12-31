@@ -5,6 +5,9 @@ __description__ = DTCompiler class that compiles a decision tree into the rule-b
 structure of FairSquare
 """
 
+from sklearn.tree import _tree
+import numpy as np
+
 class DTCompiler:
     def __init__(self, clf, features, target, outfr):
         """Constructs a DTCompiler object, to be used to extract the decision rules
@@ -42,8 +45,7 @@ class DTCompiler:
         """
         node = {}
         if self.clf.tree_.children_left[node_index] == -1:  # indicates leaf
-            count_labels = zip(self.clf.tree_.value[node_index, 0], self.target)
-            node["name"] = [(int(count), label) for count, label in count_labels]
+            node["name"] = [int(count) for count in self.clf.tree_.value[node_index, 0]]
         else:
             feature = self.features[self.clf.tree_.feature[node_index]]
             threshold = self.clf.tree_.threshold[node_index]
@@ -63,22 +65,20 @@ class DTCompiler:
         """
         print("Extracting rule-based classifier...")
         self.extracted = self._extract(node_index=0)
-        print(self.extracted)
-
+        
     def _recursive_frwrite(self, extracted, file_lines, num_tabs):
         tabs = "\t" * num_tabs
         
         # case of reaching a leaf node
         if "children" not in extracted:
             label_counts = extracted["name"]
-            print(max(label_counts)[1])
-            best_label = max(label_counts)[1]
-            file_lines.append("{}hire = {}\n".format(tabs, best_label))
+            best_label = np.argmax(label_counts)
+            file_lines.append("{}{} = {}\n".format(tabs, self.target, best_label))
         else:
             conditional = extracted["name"]
             left, right = extracted["children"]
             
-            file_lines.append("{}{}:\n".format(tabs, conditional))
+            file_lines.append("{}if {}:\n".format(tabs, conditional))
             self._recursive_frwrite(left,file_lines,num_tabs+1)
             file_lines.append("{}else:\n".format(tabs))
             self._recursive_frwrite(right,file_lines,num_tabs+1)
