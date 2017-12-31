@@ -25,7 +25,7 @@ def _data_from_csv(incsv):
     mat = np.transpose(data.as_matrix())
 
     X_labels = data.columns[:3]
-    y_label  = [1,0]
+    y_label  = data.columns[3]
 
     X = np.transpose(mat[:3])
     y = mat[3]
