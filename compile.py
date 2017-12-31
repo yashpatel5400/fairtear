@@ -28,7 +28,7 @@ def compile(dataset, sensitive_attrs, clf_pickle, features, target, outfr):
         The second param MUST either be ">" or "<", which respectively mean to hide 
         being below or exceeding a given threshold value. For example, if 
         the attribute is sex (step([0,1,.5],[1,2,.5])), the threshold can be set to 1
-        w/ "<" to prevent us from knowing if (sex < 1).
+        w/ "<" to prevent us from knowing if (sex < 1)
 
     clf_pickle : str
         Filename of where a pickled classifier is saved
@@ -42,7 +42,8 @@ def compile(dataset, sensitive_attrs, clf_pickle, features, target, outfr):
     outfr : str
         Filename where the output (.fr file) is to be stored
     """
-    rc = RecursiveCompiler(incsv=dataset, outfr=outfr, maxdepth=2)
+    rc = RecursiveCompiler(incsv=dataset, outfr=outfr, 
+        sensitive_attrs=sensitive_attrs, maxdepth=2)
     rc.compile()
 
     clf_bin = open(clf_pickle,"rb")

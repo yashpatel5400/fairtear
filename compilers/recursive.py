@@ -14,7 +14,7 @@ import numpy as np
 from compilers.helper import make_partition, make_fit
 
 class RecursiveCompiler:
-    def __init__(self, incsv, outfr, maxdepth=2):
+    def __init__(self, incsv, outfr, sensitive_attrs, maxdepth=2):
         """Recursive compiler, which assumes a maximum recursion depth as specified
         
         Parameters
@@ -24,12 +24,22 @@ class RecursiveCompiler:
 
         outfr : str
             Filename where the output (.fr file) is to be stored
+    
+        sensitive_attrs : list of (str,str,int) tuples
+            List of the names of attributes to be considered sensitive. Each attr has a
+            "threshold" value, where we wish to mask whether the an individual's sensitive 
+            attribute in relation to that threshold based on the 2nd param of the tuple. 
+            The second param MUST either be ">" or "<", which respectively mean to hide 
+            being below or exceeding a given threshold value. For example, if 
+            the attribute is sex (step([0,1,.5],[1,2,.5])), the threshold can be set to 1
+            w/ "<" to prevent us from knowing if (sex < 1)
 
         maxdepth : int
             Integer of the maximum depth in the final output (i.e. of conditionals)
         """
         self.incsv = incsv
         self.outfr = outfr
+        self.sensitive_attrs = sensitive_attrs
         self.maxdepth = maxdepth
         self.program = {}
 
@@ -219,8 +229,12 @@ class RecursiveCompiler:
         print("Reading program tree into .fr format...")
         file_lines = ["def popModel():\n"]
         self._recursive_frwrite(self.program, file_lines, num_tabs=1)
-        file_lines.append("\n")
         
+        for sensitive_attr, comp, thresh in self.sensitive_attrs:
+            file_lines.append("\tsensitiveAttribute({} {} {})\n".format(
+                sensitive_attr, comp, thresh))
+
+        file_lines.append("\n")
         print("Writing final output...")
         if new:
             f = open(self.outfr, "w")
