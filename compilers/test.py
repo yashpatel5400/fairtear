@@ -31,13 +31,14 @@ def test_compilers(incsv, sensitive_attrs, qualified_attrs):
         population, i.e. those satisfying the qualified conditionals. For example, if doing
         ("age",">",18), only those people of > 18 age will be considered in the population
     """
-    sc = SimpleCompiler(incsv=incsv, outfr="output/simple_ex.fr", 
+    features = ["ethnicity", "colRank", "yExp"]
+    sc = SimpleCompiler(incsv=incsv, outfr="output/simple_ex.fr", features=features,
         sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     sc.compile()
     sc.frwrite()
 
     rc = RecursiveCompiler(incsv=incsv, outfr="output/recur_ex.fr", maxdepth=2,
-        sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
+         features=features, sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
     rc.frwrite()
 

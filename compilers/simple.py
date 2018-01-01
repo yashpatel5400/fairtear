@@ -12,7 +12,7 @@ import numpy as np
 from compilers.helper import make_partition, make_fit
 
 class SimpleCompiler:
-    def __init__(self, incsv, outfr, sensitive_attrs, qualified_attrs):
+    def __init__(self, incsv, outfr, features, sensitive_attrs, qualified_attrs):
         """Simplest compiler, which assumes a maximum recursion depth of 1
         
         Parameters
@@ -22,6 +22,10 @@ class SimpleCompiler:
 
         outfr : str
             Filename where the output (.fr file) is to be stored
+
+        features : list of str
+            List of column names corresponding to the classifier input features. Should be
+            all the columns with the exception of target columns almost always
 
         sensitive_attrs : list of (str,str,int) tuples
             List of the names of attributes to be considered sensitive. Each attr has a
@@ -39,6 +43,7 @@ class SimpleCompiler:
         """
         self.incsv = incsv
         self.outfr = outfr
+        self.features = features
         self.sensitive_attrs = sensitive_attrs
         self.qualified_attrs = qualified_attrs
         self.program = {}
@@ -53,7 +58,7 @@ class SimpleCompiler:
         """
         completed = set()
 
-        df = pd.read_csv(self.incsv)
+        df = pd.read_csv(self.incsv)[self.features]
         for i, partition_column in enumerate(df.columns):
             print("Running partitioning on: {}...".format(partition_column))
             if partition_column not in completed:
