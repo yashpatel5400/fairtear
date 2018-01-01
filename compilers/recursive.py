@@ -110,13 +110,18 @@ class RecursiveCompiler:
             fits, fit_types, partition_vals, partitions = make_partitions(df[column], 
                 df[partition_column])
 
+            if len(partition_vals) == 0:
+                continue
+
             sub_completeds = []
             subprograms    = []
-            for i, partition_val in enumerate(partition_vals):
-                if i == len(partition_vals)-1:
-                    partition_range = (partition_vals[i],float("inf"))
+            for i in range(len(partition_vals)+1):
+                if i == 0:
+                    partition_range = (float("-inf"),partition_vals[i])
+                elif i == len(partition_vals):
+                    partition_range = (partition_vals[i-1],float("inf"))
                 else:
-                    partition_range = (partition_vals[i],partition_vals[i+1])
+                    partition_range = (partition_vals[i-1],partition_vals[i])
                 
                 fit = fits[i]
                 fit_type = fit_types[i]
