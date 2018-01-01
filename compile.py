@@ -53,7 +53,7 @@ def compile(dataset, clf_pickle, features, target, outfr,
         ("hire",">",0.5) corresponds to wanting to ensure the population satisfies hire > 0.5
         independent of sensitive attributes
     """
-    rc = RecursiveCompiler(incsv=dataset, outfr=outfr, maxdepth=2,
+    rc = RecursiveCompiler(incsv=dataset, outfr=outfr, maxdepth=2, features=features,
         sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
 

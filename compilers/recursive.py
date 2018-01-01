@@ -14,7 +14,7 @@ import numpy as np
 from compilers.helper import make_partition, make_fit
 
 class RecursiveCompiler:
-    def __init__(self, incsv, outfr, maxdepth, sensitive_attrs, qualified_attrs):
+    def __init__(self, incsv, outfr, maxdepth, features, sensitive_attrs, qualified_attrs):
         """Recursive compiler, which assumes a maximum recursion depth as specified
         
         Parameters
@@ -27,6 +27,10 @@ class RecursiveCompiler:
     
         maxdepth : int
             Integer of the maximum depth in the final output (i.e. of conditionals)
+
+        features : list of str
+            List of column names corresponding to the classifier input features. Should be
+            all the columns with the exception of target columns almost always
 
         sensitive_attrs : list of (str,str,int) tuples
             List of the names of attributes to be considered sensitive. Each attr has a
@@ -45,6 +49,7 @@ class RecursiveCompiler:
         self.incsv = incsv
         self.outfr = outfr
         self.maxdepth = maxdepth
+        self.features = features
         self.sensitive_attrs = sensitive_attrs
         self.qualified_attrs = qualified_attrs
         self.program = {}
@@ -156,7 +161,7 @@ class RecursiveCompiler:
         ----------
         None
         """
-        df = pd.read_csv(self.incsv)
+        df = pd.read_csv(self.incsv)[self.features]
         completed = set()
 
         for i, partition_column in enumerate(df.columns):
