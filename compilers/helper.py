@@ -78,7 +78,7 @@ def _step_fit(data, max_partitions=6):
     max_partitions : int
         Number of partitions in the final step result
     """
-    max_gof          = None
+    min_dist         = None
     best_probs       = None
     best_partitions  = None
 
@@ -88,7 +88,7 @@ def _step_fit(data, max_partitions=6):
         
         def _step_cdf(x):
             cdf = 0.0
-            for i in range(len(partitions)):
+            for i in range(len(partitions)-1):
                 if partitions[i] < x:
                     if x >= partitions[i+1]:
                         cdf += probs[i]
@@ -98,17 +98,17 @@ def _step_fit(data, max_partitions=6):
                 else: break
             return cdf
         step_cdf = np.vectorize(_step_cdf)
-        step_gof, _ = scipy.stats.kstest(data, step_cdf)
+        step_dist, _ = scipy.stats.kstest(data, step_cdf)
 
-        print("Partitions: {}; GOF: {}".format(num_partitions, step_gof))
-        if max_gof is None or max_gof < step_gof:
-            max_gof = step_gof
+        print("Partitions: {}; Kolmogorov–Smirnov D: {}".format(num_partitions, step_dist))
+        if min_dist is None or step_dist < min_dist:
+            min_dist = step_dist
             best_probs = probs
             best_partitions = partitions
 
     fit = [(best_partitions[i],best_partitions[i+1],best_probs[i]) 
         for i in range(len(best_partitions)-1)]
-    return fit, max_gof
+    return fit, min_dist
 
 def make_fit(data):
     """Given data, determines which fit is best and returns the parameters
@@ -124,14 +124,14 @@ def make_fit(data):
     data : Numpy array
         Data to be partitioned
     """
-    gauss_fit = scipy.stats.norm.fit(data)
-    gauss_gof, _ = scipy.stats.kstest(data, "norm", gauss_fit)
-    step_fit, step_gof = _step_fit(data, max_partitions=6)
+    gauss_fit  = scipy.stats.norm.fit(data)
+    gauss_dist, _ = scipy.stats.kstest(data, "norm", args=gauss_fit)
+    step_fit, step_dist = _step_fit(data, max_partitions=6)
 
-    print("Gaussian GOF: {}, Step GOF: {}".format(gauss_gof, step_gof))
-    if gauss_gof > step_gof:
-        return gauss_fit, "gaussian", gauss_gof
-    return step_fit, "step", step_gof
+    print("Gaussian Dist: {}, Step Dist: {}".format(gauss_dist, step_dist))
+    if gauss_dist < step_dist:
+        return gauss_fit, "gaussian", gauss_dist
+    return step_fit, "step", step_dist
 
 def _partition(data, partition_data, partition):
     """Given data, partition data, and the current partition, returns the
@@ -166,7 +166,7 @@ def _partition(data, partition_data, partition):
         right_frac * _entropy(right_partition)
     information_gain = orig_entropy - new_entropy
     
-    orig_fit, orig_type, orig_gof = make_fit(data)
+    orig_fit, orig_type, orig_dist = make_fit(data)
 
     if information_gain < c.INFORMATION_GAIN_THRESH \
         or left_frac  < c.PARTITION_FRAC_THRESH     \
@@ -175,25 +175,25 @@ def _partition(data, partition_data, partition):
         return orig_fit, orig_type, None
 
     # ===================== Fits on the partitioned data ===================== #
-    fits, fit_types, gofs = [orig_fit], [orig_type], [orig_gof]
+    fits, fit_types, dists = [orig_fit], [orig_type], [orig_dist]
     for values in [left_partition, right_partition]:
-        fit, fit_type, gof = make_fit(values)
+        fit, fit_type, dist = make_fit(values)
 
         fits.append(fit)
         fit_types.append(fit_type)
-        gofs.append(gof)
+        dists.append(dist)
 
     orig_fit, left_fit, right_fit    = fits
     orig_type, left_type, right_type = fit_types
-    orig_gof, left_gof, right_gof    = gofs
-    new_gof = left_frac * left_gof + right_frac * right_gof
+    orig_dist, left_dist, right_dist = dists
+    new_dist = left_frac * left_dist + right_frac * right_dist
 
     print("Information gain: {}".format(information_gain))
-    print("GOFs: {} (Original) ; {} (New)".format(orig_gof, new_gof))
+    print("Dists: {} (Original) ; {} (New)".format(orig_dist, new_dist))
 
-    if orig_gof > new_gof: 
+    if orig_dist < new_dist: 
         return orig_fit, orig_type, None
-    return (left_fit, right_fit), (left_type, right_type), new_gof
+    return (left_fit, right_fit), (left_type, right_type), new_dist
 
 def make_partition(data, partition_data, num_partitions=5):
     """Given data and the corresponding partitioning data, determines the best
@@ -220,16 +220,16 @@ def make_partition(data, partition_data, num_partitions=5):
         partition_mean + partition_std,
         num_partitions)
 
-    max_gof  = None
+    min_dist  = None
     best_fit = None
     best_fit_type  = None
     best_partition = None
 
     for partition in partitions:
-        fit, fit_type, gof = _partition(data, partition_data, partition)
-        if gof is not None:
-            if max_gof is None or gof > max_gof:
-                max_gof = gof
+        fit, fit_type, dist = _partition(data, partition_data, partition)
+        if dist is not None:
+            if min_dist is None or dist < min_dist:
+                min_dist = dist
                 best_fit = fit
                 best_fit_type  = fit_type
                 best_partition = partition
