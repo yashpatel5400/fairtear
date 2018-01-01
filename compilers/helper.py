@@ -42,7 +42,7 @@ def _plot_fit(dataset, data, mu, std):
     plt.savefig("output/{}_fit.png".format(dataset))
     plt.close()
 
-def _entropy(data, to_plot=True):
+def _entropy(data, to_plot=False):
     """Calculates entropy of the data once binned.
 
     Parameters
@@ -54,15 +54,14 @@ def _entropy(data, to_plot=True):
         Indicates whether the binning results are to be visualized. If True,
         the outputs are saved to output/partitions.png
     """
-    num_partitions = 10
-    counts, _ = np.histogram(data, 25)
+    num_partitions = 25
+    counts, _ = np.histogram(data, num_partitions)
     probabilities = counts / len(data)
     if to_plot:
         plt.hist(data, bins=25, normed=True, alpha=0.6, color='g')
         plt.title("Data Partitions")
         plt.savefig("output/partitions.png")
         plt.close()
-
     return scipy.stats.entropy(probabilities)
 
 def _step_fit(data, max_partitions=6):
@@ -97,6 +96,7 @@ def _step_fit(data, max_partitions=6):
                             * probs[i]
                 else: break
             return cdf
+
         step_cdf = np.vectorize(_step_cdf)
         step_dist, _ = scipy.stats.kstest(data, step_cdf)
 
@@ -168,11 +168,12 @@ def _partition(data, partition_data, partition):
     
     orig_fit, orig_type, orig_dist = make_fit(data)
 
+    print("Information gain: {}".format(information_gain))
     if information_gain < c.INFORMATION_GAIN_THRESH \
         or left_frac  < c.PARTITION_FRAC_THRESH     \
         or right_frac < c.PARTITION_FRAC_THRESH: 
 
-        return orig_fit, orig_type, None
+        return orig_fit, orig_type, orig_dist, None
 
     # ===================== Fits on the partitioned data ===================== #
     fits, fit_types, dists = [orig_fit], [orig_type], [orig_dist]
@@ -183,19 +184,19 @@ def _partition(data, partition_data, partition):
         fit_types.append(fit_type)
         dists.append(dist)
 
-    orig_fit, left_fit, right_fit    = fits
+    orig_fit,  left_fit,  right_fit    = fits
     orig_type, left_type, right_type = fit_types
     orig_dist, left_dist, right_dist = dists
     new_dist = left_frac * left_dist + right_frac * right_dist
-
-    print("Information gain: {}".format(information_gain))
     print("Dists: {} (Original) ; {} (New)".format(orig_dist, new_dist))
 
-    if orig_dist < new_dist: 
-        return orig_fit, orig_type, None
-    return (left_fit, right_fit), (left_type, right_type), new_dist
+    # TODO: determine whether new_dist makes sense as a metric
+    # if orig_dist < new_dist: 
+    #     return orig_fit, orig_type, None
+    return [left_fit, right_fit], [left_type, right_type], \
+        new_dist, [left_partition, right_partition]
 
-def make_partition(data, partition_data, num_partitions=5):
+def _make_partition(data, partition_data):
     """Given data and the corresponding partitioning data, determines the best
     partition of the data based on partition_data. Returns a tuple of
     fit, fit_type, partition as the result. If fit is returned as None, this
@@ -209,28 +210,51 @@ def make_partition(data, partition_data, num_partitions=5):
 
     partition_data : Numpy array
         Array to be used for partitioning the data array
-    
-    num_partitions : int
-        Number of legal partitions to be considered
     """
+    considered_partitions = 5
     partition_mean = np.mean(partition_data)
     partition_std  = np.std(partition_data)
-    partitions = np.linspace(
+    potential_partition_vals = np.linspace(
         partition_mean - partition_std,
         partition_mean + partition_std,
-        num_partitions)
+        considered_partitions)
 
     min_dist  = None
-    best_fit = None
+    best_fit  = None
     best_fit_type  = None
     best_partition = None
+    best_partition_val = None
 
-    for partition in partitions:
-        fit, fit_type, dist = _partition(data, partition_data, partition)
-        if dist is not None:
+    for partition_val in potential_partition_vals:
+        fit, fit_type, dist, partition = _partition(data, partition_data, partition_val)
+        if partition is not None:
             if min_dist is None or dist < min_dist:
                 min_dist = dist
                 best_fit = fit
                 best_fit_type  = fit_type
                 best_partition = partition
-    return best_fit, best_fit_type, best_partition
+                best_partition_val = partition_val
+
+    return best_fit, best_fit_type, best_partition_val, best_partition
+
+def make_partitions(data, partition_data):
+    max_partitions  = 5
+    fits           = []
+    fit_types      = []
+    partition_vals = []
+    partitions     = [data]
+
+    for _ in range(max_partitions):
+        partition_entropies = [_entropy(partition) for partition in partitions]
+        to_partition_ind = np.argmax(partition_entropies)
+        subdata           = partitions[to_partition_ind]
+        partition_subdata = partition_data[subdata.index]
+
+        fit, fit_type, partition_val, partition = _make_partition(subdata, partition_subdata)
+        if fit is not None:
+            fits = fits[:to_partition_ind] + fit + fits[to_partition_ind+1:]
+            fit_types = fit_types[:to_partition_ind] + fit_type + fit_types[to_partition_ind+1:]
+            partition_vals.insert(to_partition_ind, partition_val)
+            partitions = partitions[:to_partition_ind] + partition + partitions[to_partition_ind+1:]
+        else: break
+    return fits, fit_types, partition_vals, partitions

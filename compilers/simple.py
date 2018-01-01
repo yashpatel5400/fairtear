@@ -9,7 +9,7 @@ import scipy.stats
 import pandas as pd
 import numpy as np
 
-from compilers.helper import make_partition, make_fit
+from compilers.helper import make_partitions, make_fit
 
 class SimpleCompiler:
     def __init__(self, incsv, outfr, features, sensitive_attrs, qualified_attrs):
@@ -72,7 +72,7 @@ class SimpleCompiler:
 
                 for j, column in enumerate(df.columns[i+1:]):
                     fit, fit_type, partition = make_partition(df[column], 
-                        df[partition_column], num_partitions=5)
+                        df[partition_column])
                     
                     if fit is not None:
                         left_fit, right_fit = fit

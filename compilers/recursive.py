@@ -11,7 +11,7 @@ import scipy.stats
 import pandas as pd
 import numpy as np
 
-from compilers.helper import make_partition, make_fit
+from compilers.helper import make_partitions, make_fit
 
 class RecursiveCompiler:
     def __init__(self, incsv, outfr, maxdepth, features, sensitive_attrs, qualified_attrs):
@@ -70,10 +70,8 @@ class RecursiveCompiler:
         partitions_to_delete = []
         for partition in program["partitions"]:
             for variable in to_delete:
-                del program["partitions"][partition]["left"][variable]
-                del program["partitions"][partition]["right"][variable]
-            
-            if len(program["partitions"][partition]["left"]) == 0:
+                del program["partitions"][partition][variable]
+            if len(program["partitions"][partition]) == 0:
                 partitions_to_delete.append(partition)
         
         for partition in partitions_to_delete:
@@ -109,48 +107,52 @@ class RecursiveCompiler:
             if column in completed:
                 continue
 
-            fit, fit_type, partition = make_partition(df[column], 
-                df[partition_column], num_partitions=5)
-            if fit is not None:
-                left_fit, right_fit = fit
-                left_fit_type, right_fit_type = fit_type
-                if partition not in program["partitions"]:
-                    program["partitions"][partition] = {
-                        "left" : {},
-                        "right" : {}
-                    }
+            fits, fit_types, partition_vals, partitions = make_partitions(df[column], 
+                df[partition_column])
 
-                program["partitions"][partition]["left"][column] = {
-                    "fit" : left_fit,
-                    "fit_type"   : left_fit_type,
-                    "partitions" : {}
-                }
-                program["partitions"][partition]["right"][column] = {
-                    "fit" : right_fit,
-                    "fit_type"   : right_fit_type,
-                    "partitions" : {}
-                }
+            sub_completeds = []
+            subprograms    = []
+            for i, partition_val in enumerate(partition_vals):
+                if i == len(partition_vals)-1:
+                    partition_range = (partition_vals[i],float("inf"))
+                else:
+                    partition_range = (partition_vals[i],partition_vals[i+1])
                 
+                fit = fits[i]
+                fit_type = fit_types[i]
+                partition = partitions[i]
+
+                if partition_range not in program["partitions"]:
+                    program["partitions"][partition_range] = {}
+
+                program["partitions"][partition_range][column] = {
+                    "fit"        : fit,
+                    "fit_type"   : fit_type,
+                    "partitions" : {}
+                }
+
+                subprogram = program["partitions"][partition_range][column]
                 completed.add(column)
-                left_subprogram  = program["partitions"][partition]["left"][column]
-                right_subprogram = program["partitions"][partition]["right"][column]
-                
-                left_partition  = df[df[partition_column] <= partition]
-                right_partition = df[df[partition_column] > partition]
 
                 if (depth + 1) < self.maxdepth:
-                    left_completed  = self._recursive_compile(left_subprogram, left_partition, 
+                    sub_completed = self._recursive_compile(subprogram, df.loc[partition.index], 
                         copy.deepcopy(completed), column, depth+1)
-                    right_completed = self._recursive_compile(right_subprogram, right_partition, 
-                        copy.deepcopy(completed), column, depth+1)
+                    sub_completeds.append(sub_completed)
+                    subprograms.append(subprogram)
+                    
+            # have to delete those variables that were only partitioned on one of the
+            # two sides (i.e. well partitioned on one side but not other)
+            for i, subprogram in enumerate(subprograms):
+                # have to ensure that each variable in the subcompleted is in ALL others
+                self._clean_column(sub_completeds[i] - set.intersection(
+                    *(sub_completeds[:i] + sub_completeds[i+1:])), subprogram)
 
-                    # have to delete those variables that were only partitioned on one of the
-                    # two sides (i.e. well partitioned on one side but not other)
-                    self._clean_column(left_completed - right_completed, left_subprogram)
-                    self._clean_column(right_completed - left_completed, right_subprogram)
+            # add only those that are were completed on both sides to the completed set
+            intersection = set()
+            if len(sub_completeds) > 0:
+                intersection = set.intersection(*sub_completeds)
+            completed = completed.union(intersection)
 
-                    # add only those that are were completed on both sides to the completed set
-                    completed = completed.union(left_completed.intersection(right_completed))
         return completed
 
     def compile(self):
@@ -219,13 +221,27 @@ class RecursiveCompiler:
             file_lines.append("{}{} = {}{}\n".format(tabs, 
                 variable, program[variable]["fit_type"], program[variable]["fit"]))
             if len(program[variable]["partitions"]) != 0:
-                for partition in program[variable]["partitions"]:
-                    partitions = program[variable]["partitions"][partition]
+                partition_ranges = sorted(program[variable]["partitions"])
+                print(partition_ranges)
+                for i, partition_range in enumerate(partition_ranges):
+                    lower_bound, upper_bound = partition_range
+
+                    if   i == 0: conditional = "if"
+                    else: conditional = "elif"
+
+                    if lower_bound == float("-inf"):
+                        lower_bound_str = ""
+                    else: lower_bound_str = "{} < ".format(str(lower_bound))
+
+                    if upper_bound == float("inf"):
+                        upper_bound_str = ""
+                    else: upper_bound_str = " <= {}".format(str(upper_bound))
+
+                    file_lines.append("{}{} {}{}{}:\n".format(tabs, conditional, 
+                        lower_bound_str, variable, upper_bound_str))
                     
-                    file_lines.append("{}if {} <= {}:\n".format(tabs,  variable, partition))
-                    self._recursive_frwrite(partitions["left"], file_lines, num_tabs=num_tabs+1)
-                    file_lines.append("{}else:\n".format(tabs))
-                    self._recursive_frwrite(partitions["right"],file_lines, num_tabs=num_tabs+1)
+                    subprogram = program[variable]["partitions"][partition_range]
+                    self._recursive_frwrite(subprogram, file_lines, num_tabs=num_tabs+1)
 
     def frwrite(self, new):
         """Writes the self.program attribute into the standard .fr file format to
