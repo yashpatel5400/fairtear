@@ -12,8 +12,7 @@ import csv
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 
-from decisiontree import DTCompiler
-from svm import SVMCompiler
+from compilers import DTCompiler, SVMCompiler
 
 def _data_from_csv(x_csv, y_csv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 
@@ -30,7 +29,7 @@ def _data_from_csv(x_csv, y_csv):
     with open(y_csv) as f:
         y = csv.reader(f).__next__()
     X_labels = list(data.columns)
-    y_label  = 'income'
+    y_label  = "income"
 
     return X, y, X_labels, y_label
 
@@ -79,9 +78,9 @@ def test_clfs(X_labels, y_label):
         clf = pickle.load(pickle_in)
         fairness_targets = [("income",">",0.5)]
 
-        compiler = compiler_class(clf, X_labels, y_label, "output/adult_{}.fr".format(compiler_type), fairness_targets)
-        compiler.extract()
-        compiler.frwrite(True)
+        compiler = compiler_class(clf, X_labels, y_label, fairness_targets)
+        with open("output/adult_{}.fr".format(compiler_type), "w") as file:
+            compiler.frwrite(file)
 
 def generate_and_test():
     """Generates and tests the extraction of rules from them classifiers
@@ -90,7 +89,7 @@ def generate_and_test():
     ----------
     None
     """
-    X, y, X_labels, y_label = _data_from_csv(x_csv='data/adult.data.csv', y_csv='data/adult.data.labels.csv')
+    X, y, X_labels, y_label = _data_from_csv(x_csv="data/adult.data.csv", y_csv="data/adult.data.labels.csv")
     generate_clfs(X, y)
     test_clfs(X_labels, y_label)
 

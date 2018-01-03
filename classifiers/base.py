@@ -1,21 +1,21 @@
 """
 __author__ = Yash Patel and Zachary Liu
-__name__   = decisiontree.py
-__description__ = SVMCompiler class that compiles a LinearSVC into the rule-based
+__name__   = base.py
+__description__ = BaseCompiler class with common logic to compile a classifier to rule-based
 structure of FairSquare
 """
 
-from sklearn.tree import _tree
 import numpy as np
+from abc import ABC, abstractmethod
 
-class SVMCompiler:
-    def __init__(self, clf, features, target, outfr, fairness_targets):
-        """Constructs a SVMCompiler object, to be used to extract the decision rules
+class BaseCompiler(ABC):
+    def __init__(self, clf, features, target, fairness_targets):
+        """Constructs a BaseCompiler object, to be used to extract the decision rules
         from the decision tree scikit-learn classifier
 
         Parameters
         ----------
-        clf : scikit-learn Decision Tree Classifier
+        clf : scikit-learn Classifier
             Classifier trained on predicting from features -> target. Should already be
             trained when initializing
 
@@ -37,25 +37,20 @@ class SVMCompiler:
         self.clf = clf
         self.features = features
         self.target   = target
-        self.outfr    = outfr
         self.fairness_targets = fairness_targets
-        self.extracted = None
 
-    def extract(self):
+    @abstractmethod
+    def _extract(self):
         """Constructs structure of rules in a fit decision tree classifier
 
         Parameters
         ----------
         None
         """
-        print("Extracting rule-based classifier...")
-        self.coef = self.clf.coef_.flatten()
-        assert(len(self.features) == len(self.coef))
-        self.intercept = self.clf.intercept_[0]
+        pass
 
-    def frwrite(self, new):
-        """Writes the internally stored self.extracted extracted decision tree
-        to the self.outfr file destination
+    def frwrite(self, file):
+        """Writes the extracted rules to the self.outfr file destination
 
         Parameters
         ----------
@@ -65,21 +60,12 @@ class SVMCompiler:
         """
         print("Reading classifier into .fr format...")
         file_lines = ["def F():\n"]
-        file_lines.append('\t{} = {}\n'.format(self.target, ' + '.join('{} * {}'.format(feature, weight) for feature, weight in zip(self.features, self.coef))))
-        file_lines.append('\t{} = {} + {}\n'.format(self.target, self.target, self.intercept))
+        file_lines += ['\t' + line for line in self._extract()]
 
         for fairness_target, comp, thresh in self.fairness_targets:
             file_lines.append("\tfairnessTarget({} {} {})\n".format(
                 fairness_target, comp, thresh))
 
-        file_lines.append("\n")
         print("Writing final output...")
-
-        if new:
-            f = open(self.outfr, "w")
-        else:
-            f = open(self.outfr, "a")
-
-        f.writelines(file_lines)
-        f.close()
-        print("Completed writing file to: {}".format(self.outfr))
+        file.writelines(file_lines)
+        print("Completed writing file to: {}".format(file.name))
