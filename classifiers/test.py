@@ -69,7 +69,7 @@ def _test_decision_tree(X_labels, y_label):
 
     dt_compiler = DTCompiler(clf, X_labels, y_label, "output/ex.fr", fairness_targets)
     dt_compiler.extract()
-    dt_compiler.frwrite(False)
+    dt_compiler.frwrite(True)
 
 def test_clfs(X_labels, y_label):
     """Tests the extraction of rules from the classifiers, using the feature
