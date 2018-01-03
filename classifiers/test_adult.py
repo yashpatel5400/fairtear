@@ -11,8 +11,9 @@ import numpy as np
 import csv
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
+from sklearn.neural_network import MLPClassifier
 
-from compilers import DTCompiler, SVMCompiler
+from compilers import DTCompiler, SVMCompiler, NNCompiler
 
 def _data_from_csv(x_csv, y_csv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 
@@ -48,9 +49,12 @@ def generate_clfs(X, y):
     clfs = [
         ("decisiontree", DecisionTreeClassifier(random_state=0)),
         ("svm", LinearSVC(random_state=0)),
+        ("nn", MLPClassifier(hidden_layer_sizes=(10, 10), random_state=0)),
     ]
     for clf_type, clf in clfs:
+        print("Training {} classifier...".format(clf_type))
         clf.fit(X, y)
+        print("Saving {} classifier...".format(clf_type))
         pickle_out = open("classifiers/examples/adult_{}.pickle".format(clf_type),"wb")
         pickle.dump(clf, pickle_out)
         pickle_out.close()
@@ -71,6 +75,7 @@ def test_clfs(X_labels, y_label):
     compilers = [
         ("decisiontree", DTCompiler),
         ("svm", SVMCompiler),
+        ("nn", NNCompiler),
     ]
 
     for compiler_type, compiler_class in compilers:
