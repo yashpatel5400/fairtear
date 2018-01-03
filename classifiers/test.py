@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
-from classifiers.decisiontree import DTCompiler
+from decisiontree import DTCompiler
 
 def _data_from_csv(incsv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 
@@ -69,7 +69,7 @@ def _test_decision_tree(X_labels, y_label):
 
     dt_compiler = DTCompiler(clf, X_labels, y_label, "output/ex.fr", fairness_targets)
     dt_compiler.extract()
-    dt_compiler.frwrite()
+    dt_compiler.frwrite(False)
 
 def test_clfs(X_labels, y_label):
     """Tests the extraction of rules from the classifiers, using the feature
