@@ -1,0 +1,85 @@
+"""
+__author__ = Yash Patel and Zachary Liu
+__name__   = decisiontree.py
+__description__ = SVMCompiler class that compiles a LinearSVC into the rule-based
+structure of FairSquare
+"""
+
+from sklearn.tree import _tree
+import numpy as np
+
+class SVMCompiler:
+    def __init__(self, clf, features, target, outfr, fairness_targets):
+        """Constructs a SVMCompiler object, to be used to extract the decision rules
+        from the decision tree scikit-learn classifier
+
+        Parameters
+        ----------
+        clf : scikit-learn Decision Tree Classifier
+            Classifier trained on predicting from features -> target. Should already be
+            trained when initializing
+
+        features : list of str
+            List of input features used to train clf. Must match columns from the input dataset
+
+        target : str
+            Name of the clf target variable. Must match a column from the input dataset
+
+        outfr : str
+            Filename where the output (.fr file) is to be stored
+
+        fairness_targets : list of (str,str,int) tuples
+            List of the names of attributes to set desired fairness criterion. Each attr has a
+            "threshold" value, and the second param MUST either be ">" or "<". Here 
+            ("hire",">",0.5) corresponds to wanting to ensure the population satisfies hire > 0.5
+            independent of sensitive attributes
+        """
+        self.clf = clf
+        self.features = features
+        self.target   = target
+        self.outfr    = outfr
+        self.fairness_targets = fairness_targets
+        self.extracted = None
+
+    def extract(self):
+        """Constructs structure of rules in a fit decision tree classifier
+
+        Parameters
+        ----------
+        None
+        """
+        print("Extracting rule-based classifier...")
+        self.coef = self.clf.coef_.flatten()
+        assert(len(self.features) == len(self.coef))
+        self.intercept = self.clf.intercept_[0]
+
+    def frwrite(self, new):
+        """Writes the internally stored self.extracted extracted decision tree
+        to the self.outfr file destination
+
+        Parameters
+        ----------
+        new : bool
+            Indicates whether this is a new file being written to or if being
+            appended to an existing one
+        """
+        print("Reading classifier into .fr format...")
+        file_lines = ["def F():\n"]
+        file_lines.append('\t{} = {}\n'.format(self.target, ' + '.join('{} * {}'.format(feature, weight) for feature, weight in zip(self.features, self.coef))))
+        file_lines.append('\t{} = {} + {}\n'.format(self.target, self.target, self.intercept))
+
+        for fairness_target, comp, thresh in self.fairness_targets:
+            file_lines.append("\tfairnessTarget({} {} {})\n".format(
+                fairness_target, comp, thresh))
+
+        file_lines.append("\n")
+        print("Writing final output...")
+
+        if new:
+            f = open(self.outfr, "w")
+        else:
+            f = open(self.outfr, "a")
+
+        f.writelines(file_lines)
+        f.close()
+        print("Completed writing file to: {}".format(self.outfr))
