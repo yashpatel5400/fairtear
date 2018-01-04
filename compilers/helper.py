@@ -100,7 +100,6 @@ def _step_fit(data, max_partitions=6):
         step_cdf = np.vectorize(_step_cdf)
         step_dist, _ = scipy.stats.kstest(data, step_cdf)
 
-        print("Partitions: {}; Kolmogorov–Smirnov D: {}".format(num_partitions, step_dist))
         if min_dist is None or step_dist < min_dist:
             min_dist = step_dist
             best_probs = probs
@@ -128,7 +127,6 @@ def make_fit(data):
     gauss_dist, _ = scipy.stats.kstest(data, "norm", args=gauss_fit)
     step_fit, step_dist = _step_fit(data, max_partitions=6)
 
-    print("Gaussian Dist: {}, Step Dist: {}".format(gauss_dist, step_dist))
     if gauss_dist < step_dist:
         return gauss_fit, "gaussian", gauss_dist
     return step_fit, "step", step_dist
@@ -168,7 +166,6 @@ def _partition(data, partition_data, partition):
     
     orig_fit, orig_type, orig_dist = make_fit(data)
 
-    print("Information gain: {}".format(information_gain))
     if information_gain < c.INFORMATION_GAIN_THRESH \
         or left_frac  < c.PARTITION_FRAC_THRESH     \
         or right_frac < c.PARTITION_FRAC_THRESH: 
@@ -188,8 +185,7 @@ def _partition(data, partition_data, partition):
     orig_type, left_type, right_type = fit_types
     orig_dist, left_dist, right_dist = dists
     new_dist = left_frac * left_dist + right_frac * right_dist
-    print("Dists: {} (Original) ; {} (New)".format(orig_dist, new_dist))
-
+    
     # TODO: determine whether new_dist makes sense as a metric
     # if orig_dist < new_dist: 
     #     return orig_fit, orig_type, None

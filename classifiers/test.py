@@ -2,6 +2,8 @@
 __author__ = Yash Patel and Zachary Liu
 __name__   = test.py
 __description__ = Testing script for the classifier compilers
+
+__deprecated__ = True : use test_adult.py instead
 """
 
 import pickle
@@ -10,7 +12,7 @@ import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
-from compilers import DTCompiler
+from classifiers.compilers import DTCompiler
 
 def _data_from_csv(incsv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 

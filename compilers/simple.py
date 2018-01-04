@@ -140,15 +140,14 @@ class SimpleCompiler:
                     file_lines.append("{}else:\n".format(tabs))
                     self._recursive_frwrite(partitions["right"],file_lines, num_tabs=num_tabs+1)
 
-    def frwrite(self, new):
+    def frwrite(self, file):
         """Writes the self.program attribute into the standard .fr file format to
         be interpreted by FairSquare, saved to the outfr file destination
         
         Parameters
         ----------
-        new : bool
-            Indicates whether this is a new file being written to or if being
-            appended to an existing one
+        file : File pointer object
+            File pointer to where the contents are to be written to disk
         """
         print("Reading program tree into .fr format...")
         file_lines = ["def popModel():\n"]
@@ -163,11 +162,6 @@ class SimpleCompiler:
 
         file_lines.append("\n")
         print("Writing final output...")
-        if new:
-            f = open(self.outfr, "w")
-        else:
-            f = open(self.outfr, "a")
-
-        f.writelines(file_lines)
-        f.close()
+        file.writelines(file_lines)
+        file.close()
         print("Completed writing file to: {}".format(self.outfr))

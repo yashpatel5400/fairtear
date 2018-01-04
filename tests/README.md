@@ -1,4 +1,6 @@
 # Tests
+__DEPRECATED__ : Refer now to the data/ directory for tests
+
 Where all the test .csv files are saved. These are used to represent trials where the population model is internally known to to see whether the correct .fr files can be created as a result.
 
 ## simple.csv

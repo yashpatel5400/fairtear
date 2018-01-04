@@ -6,33 +6,33 @@ file generation
 """
 
 import pickle
+import pandas as pd
+import numpy as np
+import csv
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import LinearSVC
+from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from compilers.simple import SimpleCompiler
 from compilers.recursive import RecursiveCompiler
-from classifiers.decisiontree import DTCompiler
+from classifiers.base import Compiler
+from classifiers.test_adult import generate_clfs, data_from_csv
 
-def compile(dataset, clf_pickle, features, target, outfr, 
-    sensitive_attrs, qualified_attrs, fairness_targets):
+def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
+    qualified_attrs, fairness_targets):
     """Main function, used to compile into the final .fr file. Takes the dataset and
     sensitive_attrs to construct the popModel() function and clf, features, and target
     for F(). Outputs are saved to the outfr destination (returns void)
 
     Parameters
     ----------
-    dataset : str
-        Filename of the csv where the input dataset is stored
-
     clf_pickle : str
         Filename of where a pickled classifier is saved
 
-    features : list of str
-        List of input features used to train clf. Must match columns from the input dataset
-
-    target : str
-        Name of the clf target variable. Must match a column from the input dataset
-
-    outfr : str
-        Filename where the output (.fr file) is to be stored
+    x_csv, y_csv : str
+        Filename of the csv where the input dataset is stored
 
     sensitive_attrs : list of (str,str,int) tuples
         List of the names of attributes to be considered sensitive. Each attr has a
@@ -53,29 +53,45 @@ def compile(dataset, clf_pickle, features, target, outfr,
         ("hire",">",0.5) corresponds to wanting to ensure the population satisfies hire > 0.5
         independent of sensitive attributes
     """
-    rc = RecursiveCompiler(incsv=dataset, outfr=outfr, maxdepth=2, features=features,
+    X, y, X_labels, y_label = data_from_csv(x_csv=x_csv, y_csv=y_csv)
+
+    rc = RecursiveCompiler(x_csv=x_csv, maxdepth=2,
         sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
 
     clf_bin = open(clf_pickle,"rb")
     clf = pickle.load(clf_bin)
-    dtc = DTCompiler(clf=clf, features=features, target=target, outfr=outfr, 
-        fairness_targets=fairness_targets)
-    dtc.extract()
-
-    rc.frwrite(new=True)
-    dtc.frwrite(new=False)
-
-if __name__ == "__main__":
-    dataset         = "tests/simple.csv"
+    compiler = Compiler(clf, X_labels, y_label, fairness_targets)
     
+    with open(outfr, "w") as file:
+        rc.frwrite(file)
+    with open(outfr, "a") as file:
+        compiler.frwrite(file)
+
+def test_compile():
+    x_csv = "data/adult.data.csv"
+    y_csv = "data/adult.data.labels.csv"
+
+    X, y, X_labels, y_label = data_from_csv(x_csv=x_csv, y_csv=y_csv)
+    generate_clfs(X, y)
+
+    # ------------------------------------------------------------------------------
+
+    fairness_targets = [("income",">",0.5)]
     sensitive_attrs  = [("ethnicity",">",10)]
     qualified_attrs  = []
-    fairness_targets = [("hire",">",0.5)]
+    
+    compilers = [
+        ("decisiontree", Compiler),
+        ("svm", Compiler),
+        ("nn", Compiler),
+    ]
 
-    clf_pickle      = "classifiers/examples/decisiontree.pickle"
-    features        = ["ethnicity", "colRank", "yExp"]
-    target          = "hire"
-    outfr           = "output/ex.fr"
-    compile(dataset, clf_pickle, features, target, outfr, 
-        sensitive_attrs, qualified_attrs, fairness_targets)
+    for compiler_type, compiler_class in compilers:
+        clf_pickle = "classifiers/examples/adult_{}.pickle".format(compiler_type)
+        outfr = "output/adult_{}.fr".format(compiler_type)
+        compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
+            qualified_attrs, fairness_targets)
+        
+if __name__ == "__main__":
+    test_compile()
