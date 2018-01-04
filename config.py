@@ -27,3 +27,9 @@ CSRF_SESSION_KEY = "secret"
 
 # Secret key for signing cookies
 SECRET_KEY = "secret"
+
+# uploads for the data csvs
+UPLOAD_FOLDER = os.path.abspath("fairtear/data")
+
+# only reads csv files for now
+ALLOWED_EXTENSIONS = set(['csv','pickle'])
