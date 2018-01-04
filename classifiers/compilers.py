@@ -8,6 +8,7 @@ structure of FairSquare
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import numpy as np
 import math
@@ -128,6 +129,18 @@ def extract_neural_network(clf, features, target):
     return [target], output
 
 
+def extract_scaler(clf, features, target):
+    assert(isinstance(clf, StandardScaler))
+    assert(len(features) == len(clf.scale_))
+    assert(len(features) == len(clf.mean_))
+
+    new_features = ["scaled_{}".format(feature) for feature in features]
+    output = []
+    for new_feature, feature, mean, scale in zip(new_features, features, clf.mean_, clf.scale_):
+        output.append("{} = ({} - {}) * {}\n".format(new_feature, feature, mean, scale))
+    return new_features, output
+
+
 def extract_pipeline(clf, features, target):
     assert(isinstance(clf, Pipeline))
 
@@ -144,6 +157,7 @@ def extract(clf, features, target):
         DecisionTreeClassifier: extract_decision_tree,
         LinearSVC: extract_svm,
         MLPClassifier: extract_neural_network,
+        StandardScaler: extract_scaler,
         Pipeline: extract_pipeline,
     }
     extractor = None
@@ -152,6 +166,6 @@ def extract(clf, features, target):
             extractor = extractor_function
             break
     if extractor is None:
-        raise Exception('Unsupported classifier type')
+        raise Exception('Unsupported classifier type: {}'.format(clf.__class__.__name__))
 
     return extractor_function(clf, features, target)

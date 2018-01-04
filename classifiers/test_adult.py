@@ -12,6 +12,8 @@ import csv
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from base import Compiler
 
@@ -53,10 +55,14 @@ def generate_clfs(X, y):
     ]
     for clf_type, clf in clfs:
         print("Training {} classifier...".format(clf_type))
-        clf.fit(X, y)
+        pipeline = Pipeline([
+            ("scaler", StandardScaler()),
+            (clf_type, clf),
+        ])
+        pipeline.fit(X, y)
         print("Saving {} classifier...".format(clf_type))
         pickle_out = open("classifiers/examples/adult_{}.pickle".format(clf_type),"wb")
-        pickle.dump(clf, pickle_out)
+        pickle.dump(pipeline, pickle_out)
         pickle_out.close()
 
 
