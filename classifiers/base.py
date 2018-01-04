@@ -6,11 +6,12 @@ structure of FairSquare
 """
 
 import numpy as np
-from abc import ABC, abstractmethod
 
-class BaseCompiler(ABC):
+from compilers import extract
+
+class Compiler:
     def __init__(self, clf, features, target, fairness_targets):
-        """Constructs a BaseCompiler object, to be used to extract the decision rules
+        """Constructs a Compiler object, to be used to extract the decision rules
         from the decision tree scikit-learn classifier
 
         Parameters
@@ -39,15 +40,6 @@ class BaseCompiler(ABC):
         self.target   = target
         self.fairness_targets = fairness_targets
 
-    @abstractmethod
-    def _extract(self):
-        """Constructs structure of rules in a fit decision tree classifier
-
-        Parameters
-        ----------
-        None
-        """
-        pass
 
     def frwrite(self, file):
         """Writes the extracted rules to the self.outfr file destination
@@ -60,7 +52,8 @@ class BaseCompiler(ABC):
         """
         print("Reading classifier into .fr format...")
         file_lines = ["def F():\n"]
-        file_lines += ['\t' + line for line in self._extract()]
+        _, new_lines = extract(self.clf, self.features, self.target)
+        file_lines += ['\t' + line for line in new_lines]
 
         for fairness_target, comp, thresh in self.fairness_targets:
             file_lines.append("\tfairnessTarget({} {} {})\n".format(
