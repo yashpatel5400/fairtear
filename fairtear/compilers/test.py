@@ -43,7 +43,7 @@ def test_compilers(incsv, sensitive_attrs, qualified_attrs):
     rc.frwrite()
 
 if __name__ == "__main__":
-    test_compilers("tests/ex.csv", [("ethnicity",">",10)],[])
+    test_compilers("data/ex.csv", [("ethnicity",">",10)],[])
 
     fr_input = """
     ethnicity = gaussian(0,100)
