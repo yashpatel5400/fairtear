@@ -5,7 +5,7 @@ __description__ = Main Flask application server
 """
 
 import os
-from flask import Flask, request, redirect, url_for, render_template
+from flask import Flask, request, redirect, url_for, render_template, jsonify
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -14,6 +14,15 @@ app.config.from_object("config")
 def allowed_file(filename):
     return "." in filename and \
            filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
+
+@app.route('/_analyze_data', methods=["GET", "POST"])
+def analyze_data():
+    print(request['xcsv'])
+    xcsv = request.args.get('xcsv', 0)
+    ycsv = request.args.get('ycsv', 0)
+    clf  = request.args.get('clf', 0)
+
+    return jsonify(result=a + b)
 
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
