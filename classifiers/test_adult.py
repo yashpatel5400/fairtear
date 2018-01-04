@@ -13,7 +13,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 from sklearn.neural_network import MLPClassifier
 
-from compilers import DTCompiler, SVMCompiler, NNCompiler
+from base import Compiler
 
 def _data_from_csv(x_csv, y_csv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 
@@ -73,9 +73,9 @@ def test_clfs(X_labels, y_label):
         Name of the clf target variable. Must match a column from the input dataset
     """
     compilers = [
-        ("decisiontree", DTCompiler),
-        ("svm", SVMCompiler),
-        ("nn", NNCompiler),
+        ("decisiontree", Compiler),
+        ("svm", Compiler),
+        ("nn", Compiler),
     ]
 
     for compiler_type, compiler_class in compilers:
