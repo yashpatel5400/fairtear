@@ -15,9 +15,9 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from base import Compiler
+from classifiers.base import Compiler
 
-def _data_from_csv(x_csv, y_csv):
+def data_from_csv(x_csv, y_csv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 
     from the csv and returns them as np arrays, as X, y, X_labels, y_label
     
@@ -100,7 +100,7 @@ def generate_and_test():
     ----------
     None
     """
-    X, y, X_labels, y_label = _data_from_csv(x_csv="data/adult.data.csv", y_csv="data/adult.data.labels.csv")
+    X, y, X_labels, y_label = data_from_csv(x_csv="data/adult.data.csv", y_csv="data/adult.data.labels.csv")
     generate_clfs(X, y)
     test_clfs(X_labels, y_label)
 

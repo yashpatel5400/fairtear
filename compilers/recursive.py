@@ -14,23 +14,16 @@ import numpy as np
 from compilers.helper import make_partitions, make_fit
 
 class RecursiveCompiler:
-    def __init__(self, incsv, outfr, maxdepth, features, sensitive_attrs, qualified_attrs):
+    def __init__(self, x_csv, maxdepth, sensitive_attrs, qualified_attrs):
         """Recursive compiler, which assumes a maximum recursion depth as specified
         
         Parameters
         ----------
-        incsv : str
+        x_csv : str
             Filename of the csv where the input dataset is stored
-
-        outfr : str
-            Filename where the output (.fr file) is to be stored
     
         maxdepth : int
             Integer of the maximum depth in the final output (i.e. of conditionals)
-
-        features : list of str
-            List of column names corresponding to the classifier input features. Should be
-            all the columns with the exception of target columns almost always
 
         sensitive_attrs : list of (str,str,int) tuples
             List of the names of attributes to be considered sensitive. Each attr has a
@@ -46,10 +39,8 @@ class RecursiveCompiler:
             population, i.e. those satisfying the qualified conditionals. For example, if doing
             ("age",">",18), only those people of > 18 age will be considered in the population
         """
-        self.incsv = incsv
-        self.outfr = outfr
+        self.x_csv = x_csv
         self.maxdepth = maxdepth
-        self.features = features
         self.sensitive_attrs = sensitive_attrs
         self.qualified_attrs = qualified_attrs
         self.program = {}
@@ -70,7 +61,8 @@ class RecursiveCompiler:
         partitions_to_delete = []
         for partition in program["partitions"]:
             for variable in to_delete:
-                del program["partitions"][partition][variable]
+                if variable in program["partitions"]:
+                    del program["partitions"][partition][variable]
             if len(program["partitions"][partition]) == 0:
                 partitions_to_delete.append(partition)
         
@@ -168,7 +160,7 @@ class RecursiveCompiler:
         ----------
         None
         """
-        df = pd.read_csv(self.incsv)[self.features]
+        df = pd.read_csv(self.x_csv)
         completed = set()
 
         for i, partition_column in enumerate(df.columns):
@@ -186,7 +178,6 @@ class RecursiveCompiler:
             completed.add(partition_column)
             completed = self._recursive_compile(self.program[partition_column], 
                 df, completed, partition_column, depth=0)
-            print("===============================================")
             
         print("Compiled program tree!")
         
@@ -227,7 +218,6 @@ class RecursiveCompiler:
                 variable, program[variable]["fit_type"], program[variable]["fit"]))
             if len(program[variable]["partitions"]) != 0:
                 partition_ranges = sorted(program[variable]["partitions"])
-                print(partition_ranges)
                 for i, partition_range in enumerate(partition_ranges):
                     lower_bound, upper_bound = partition_range
 
@@ -248,15 +238,14 @@ class RecursiveCompiler:
                     subprogram = program[variable]["partitions"][partition_range]
                     self._recursive_frwrite(subprogram, file_lines, num_tabs=num_tabs+1)
 
-    def frwrite(self, new):
+    def frwrite(self, file):
         """Writes the self.program attribute into the standard .fr file format to
         be interpreted by FairSquare, saved to the outfr file destination
         
         Parameters
         ----------
-        new : bool
-            Indicates whether this is a new file being written to or if being
-            appended to an existing one
+        file : File pointer object
+            File pointer to where the contents are to be written to disk
         """
         print("Reading program tree into .fr format...")
         file_lines = ["def popModel():\n"]
@@ -271,11 +260,6 @@ class RecursiveCompiler:
 
         file_lines.append("\n")
         print("Writing final output...")
-        if new:
-            f = open(self.outfr, "w")
-        else:
-            f = open(self.outfr, "a")
-
-        f.writelines(file_lines)
-        f.close()
-        print("Completed writing file to: {}".format(self.outfr))
+        file.writelines(file_lines)
+        file.close()
+        print("Completed writing file!")
