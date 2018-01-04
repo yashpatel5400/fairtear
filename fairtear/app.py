@@ -4,8 +4,11 @@ __name__   = app.py
 __description__ = Main Flask application server
 """
 
+from flask import Flask
 from flask import render_template
-from flask_login import login_required, current_user
+
+app = Flask(__name__)
+app.config.from_object('config')
 
 @app.route('/')
 def index():
