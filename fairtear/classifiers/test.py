@@ -94,7 +94,7 @@ def generate_and_test():
     ----------
     None
     """
-    X, y, X_labels, y_label = _data_from_csv(incsv="tests/simple.csv")
+    X, y, X_labels, y_label = _data_from_csv(incsv="data/simple.csv")
     generate_clfs(X, y)
     test_clfs(X_labels, y_label)
 

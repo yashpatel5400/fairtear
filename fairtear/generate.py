@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 def generate_simple(num_samples=500):
-    """Generates dataset according to the ex.fr model (saved to tests/simple.csv):
+    """Generates dataset according to the ex.fr model (saved to data/simple.csv):
 
     ethnicity = gaussian(0,100)
     colRank = gaussian(25,100)
@@ -39,11 +39,11 @@ def generate_simple(num_samples=500):
     data["hire"][(data["colRank"] <= 5) | (data["expRank"] > -5)] += 1
     data = data.drop(["expRank"], axis=1)
 
-    data.to_csv("tests/simple.csv", index=False)
+    data.to_csv("data/simple.csv", index=False)
 
 def generate_multi(num_samples=500):
     """Generates dataset model where multiple levels of recursion are expected in the
-    output (saved to tests/multi.csv):
+    output (saved to data/multi.csv):
 
     sex = gaussian(1,1)
     if sex < 1:
@@ -102,10 +102,10 @@ def generate_multi(num_samples=500):
     data["education_num"][(data["sex"] >= 1) & (data["capital_gain"] >= 5178.0000)] = \
         np.random.normal(loc=10.0974, scale=7.1793, size=(num_samples))
     
-    data.to_csv("tests/multi.csv", index=False)
+    data.to_csv("data/multi.csv", index=False)
 
 def generate():
-    """Generates datasets and saves them into the tests/ directory
+    """Generates datasets and saves them into the data/ directory
 
     Parameters
     ----------
