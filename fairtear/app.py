@@ -41,6 +41,16 @@ def analyze_data():
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
+        print(request.form)
+
+        # Attribute
+        # Conditional
+        # Threshold
+        # 
+        # sensitive
+        # qualified
+        # fairness
+
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
     form = DataForm(request.form)

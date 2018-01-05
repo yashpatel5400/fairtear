@@ -71,18 +71,21 @@
                     <form method="post" enctype="multipart/form-data" id="data">
                       <dl>
                         {{ form.csrf_token }}
-                        {{ render_field(form.xcsv) }}
-                        {{ render_field(form.ycsv) }}
-                        {{ render_field(form.clf) }}
-                        {{ render_field(form.sensitive) }}
-                        {{ render_field(form.qualified) }}
-                        {{ render_field(form.fairness) }}
+                        <dd class="col-sm-12"> Features CSV : {{ form.xcsv|safe }} </dd>
+                        <dd class="col-sm-12"> Target CSV : {{ form.ycsv|safe }} </dd>
+                        <dd class="col-sm-12"> Classifier Pickle : {{ form.clf|safe }} </dd>
                       </dl>
 
                     <div class="col-sm-12">
-                        <input class="col-sm-3" type="button" value="Add Sensitive Attribute" onClick="addInput('sensitive');">
-                        <input class="col-sm-3" type="button" value="Add Qualified Attribute" onClick="addInput('qualified');">
-                        <input class="col-sm-3" type="button" value="Add Fairness Target" onClick="addInput('fairness');">
+                        <button class="col-sm-4 btn-primary" type="button" onClick="addInput('sensitive');">
+                            Add Sensitive Attribute
+                        </button>
+                        <button class="col-sm-4 btn-primary" type="button" onClick="addInput('qualified');">
+                            Add Qualified Attribute
+                        </button>
+                        <button class="col-sm-3 btn-primary" type="button" onClick="addInput('fairness');">
+                            Add Fairness Target
+                        </button>
                     </div>
 
                     <hr><div id="sensitive"></div>
@@ -109,17 +112,12 @@
 
                     <br><br><br>
                     <div class="f1-buttons">
-                        <button type="button" class="btn btn-previous">Previous</button>
                         <button type="button" class="btn btn-next">Next</button>
                     </div>
                 </fieldset>
 
                 <fieldset>
                     <h4>Results:</h4>
-                    <div class="f1-buttons">
-                        <button type="button" class="btn btn-previous">Previous</button>
-                        <button type="submit" class="btn btn-submit">Submit</button>
-                    </div>
                 </fieldset>
             </div>
         </div>
