@@ -20,7 +20,3 @@ class DataForm(FlaskForm):
     xcsv  = FileField() 
     ycsv  = FileField()
     clf   = FileField()
-
-    sensitive = FormField(AttributeForm)
-    qualified = FormField(AttributeForm)
-    fairness  = FormField(AttributeForm)
