@@ -61,7 +61,7 @@ def generate_clfs(X, y):
         ])
         pipeline.fit(X, y)
         print("Saving {} classifier...".format(clf_type))
-        pickle_out = open("classifiers/examples/adult_{}.pickle".format(clf_type),"wb")
+        pickle_out = open("fairtear/classifiers/examples/adult_{}.pickle".format(clf_type),"wb")
         pickle.dump(pipeline, pickle_out)
         pickle_out.close()
 
@@ -85,12 +85,13 @@ def test_clfs(X_labels, y_label):
     ]
 
     for compiler_type, compiler_class in compilers:
-        pickle_in = open("classifiers/examples/adult_{}.pickle".format(compiler_type), "rb")
+        pickle_in = open("fairtear/classifiers/examples/adult_{}.pickle".format(
+            compiler_type), "rb")
         clf = pickle.load(pickle_in)
         fairness_targets = [("income",">",0.5)]
 
         compiler = compiler_class(clf, X_labels, y_label, fairness_targets)
-        with open("output/adult_{}.fr".format(compiler_type), "w") as file:
+        with open("fairtear/output/adult_{}.fr".format(compiler_type), "w") as file:
             compiler.frwrite(file)
 
 def generate_and_test():
@@ -100,7 +101,9 @@ def generate_and_test():
     ----------
     None
     """
-    X, y, X_labels, y_label = data_from_csv(x_csv="data/adult.data.csv", y_csv="data/adult.data.labels.csv")
+    X, y, X_labels, y_label = data_from_csv(
+        x_csv="fairtear/data/adult.data.csv", 
+        y_csv="fairtear/data/adult.data.labels.csv")
     generate_clfs(X, y)
     test_clfs(X_labels, y_label)
 

@@ -95,6 +95,7 @@ class RecursiveCompiler:
         if depth >= self.maxdepth:
             return completed
 
+        partition_id = 0
         for column in df.columns:
             if column in completed:
                 continue
@@ -105,15 +106,16 @@ class RecursiveCompiler:
             if len(partition_vals) == 0:
                 continue
 
+            completed.add(column)
             sub_completeds = []
             subprograms    = []
             for i in range(len(partition_vals)+1):
                 if i == 0:
-                    partition_range = (float("-inf"),partition_vals[i])
+                    partition_range = (partition_id, float("-inf"),partition_vals[i])
                 elif i == len(partition_vals):
-                    partition_range = (partition_vals[i-1],float("inf"))
+                    partition_range = (partition_id, partition_vals[i-1],float("inf"))
                 else:
-                    partition_range = (partition_vals[i-1],partition_vals[i])
+                    partition_range = (partition_id, partition_vals[i-1],partition_vals[i])
                 
                 fit = fits[i]
                 fit_type = fit_types[i]
@@ -129,8 +131,6 @@ class RecursiveCompiler:
                 }
 
                 subprogram = program["partitions"][partition_range][column]
-                completed.add(column)
-
                 if (depth + 1) < self.maxdepth:
                     sub_completed = self._recursive_compile(subprogram, df.loc[partition.index], 
                         copy.deepcopy(completed), column, depth+1)
@@ -139,6 +139,7 @@ class RecursiveCompiler:
                     
             # have to delete those variables that were only partitioned on one of the
             # two sides (i.e. well partitioned on one side but not other)
+            partition_id += 1
             for i, subprogram in enumerate(subprograms):
                 # have to ensure that each variable in the subcompleted is in ALL others
                 self._clean_column(sub_completeds[i] - set.intersection(
@@ -217,11 +218,14 @@ class RecursiveCompiler:
             file_lines.append("{}{} = {}{}\n".format(tabs, 
                 variable, program[variable]["fit_type"], program[variable]["fit"]))
             if len(program[variable]["partitions"]) != 0:
-                partition_ranges = sorted(program[variable]["partitions"])
-                for i, partition_range in enumerate(partition_ranges):
-                    lower_bound, upper_bound = partition_range
+                partition_ranges  = sorted(program[variable]["partitions"])
+                prev_partition_id = None
+                for partition_range in partition_ranges:
+                    partition_id, lower_bound, upper_bound = partition_range
 
-                    if   i == 0: conditional = "if"
+                    if prev_partition_id != partition_id: 
+                        conditional = "if"
+                        prev_partition_id = partition_id
                     else: conditional = "elif"
 
                     if lower_bound == float("-inf"):
