@@ -23,6 +23,8 @@
 
     <body>
 
+        {% from "_formhelpers.html" import render_field %}
+
         <div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -67,21 +69,27 @@
 
                 <fieldset>
                     <form method="post" enctype="multipart/form-data" id="data">
-                        Features CSV: <input type="file" name="xcsv"> <br>
-                        Targets CSV: <input type="file" name="ycsv"> <br>
-                        Classifier Pickle: <input type="file" name="clf" > <br>
+                      <dl>
+                        {{ form.csrf_token }}
+                        {{ render_field(form.xcsv) }}
+                        {{ render_field(form.ycsv) }}
+                        {{ render_field(form.clf) }}
+                        {{ render_field(form.sensitive) }}
+                        {{ render_field(form.qualified) }}
+                        {{ render_field(form.fairness) }}
+                      </dl>
 
-                        <div class="col-sm-12">
-                            <input class="col-sm-3" type="button" value="Add Sensitive Attribute" onClick="addInput('sensitive');">
-                            <input class="col-sm-3" type="button" value="Add Qualified Attribute" onClick="addInput('qualified');">
-                            <input class="col-sm-3" type="button" value="Add Fairness Target" onClick="addInput('fairness');">
-                        </div>
+                    <div class="col-sm-12">
+                        <input class="col-sm-3" type="button" value="Add Sensitive Attribute" onClick="addInput('sensitive');">
+                        <input class="col-sm-3" type="button" value="Add Qualified Attribute" onClick="addInput('qualified');">
+                        <input class="col-sm-3" type="button" value="Add Fairness Target" onClick="addInput('fairness');">
+                    </div>
 
-                        <hr><div id="sensitive"></div>
-                        <hr><div id="qualified"></div>
-                        <hr><div id="fairness"></div>
+                    <hr><div id="sensitive"></div>
+                    <hr><div id="qualified"></div>
+                    <hr><div id="fairness"></div>
 
-                        <a class="f1-buttons btn btn-next" id="analyze">Analyze</a>
+                      <p><a class="f1-buttons btn btn-next" id="analyze">Analyze</a>
                     </form>
                 </fieldset>
 
@@ -152,17 +160,20 @@
             $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
             $(function() {
               $('a#analyze').bind('click', function() {
+                var form_data = new FormData($('#data')[0]);
                 $.ajax({
-                  url: $SCRIPT_ROOT + '/_analyze_data',
-                  type: 'post',
-                  data: $('#data').serialize(),
-                  success: function(){
-                    console.log('success');
-                  }, error: function(xhr, textStatus, errorThrown) {
-                    console.log(xhr.responseText);
-                  }});
-                })
+                    type: 'POST',
+                    url: $SCRIPT_ROOT + '/_analyze_data',
+                    data: form_data,
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                    success: function(data) {
+                        console.log('Success!');
+                    }
+                });
                 return false;
             });
+          });
         </script>
 </html>
