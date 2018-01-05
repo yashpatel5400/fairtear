@@ -18,10 +18,10 @@ def allowed_file(filename):
     return "." in filename and \
            filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
-@app.route('/_analyze_data', methods=["POST"])
+@app.route('/_analyze_data', methods=["GET","POST"])
 def analyze_data():
     form = DataForm(request.form)
-    if request.method == "POST" and form.validate():
+    if form.validate():
         # check if the post request has the file part
         form_filenames = ["xcsv","ycsv","clf"]
         files = []
@@ -75,8 +75,9 @@ def analyze_data():
 
         x_csv, y_csv, clf_pickle = filenames
         outfr = "fairtear/output/result.fr"
-        compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
-            qualified_attrs, fairness_targets)
+        # compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
+        #     qualified_attrs, fairness_targets)
+    return jsonify(result="Completed") 
 
 @app.route("/", methods=["GET", "POST"])
 def upload_file():

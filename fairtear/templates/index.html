@@ -23,8 +23,6 @@
 
     <body>
 
-        {% from "_formhelpers.html" import render_field %}
-
         <div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -92,7 +90,9 @@
                     <hr><div id="qualified"></div>
                     <hr><div id="fairness"></div>
 
-                      <p><a class="f1-buttons btn btn-next" id="analyze">Analyze</a>
+                    <div class="f1-buttons">
+                        <a class="btn btn-next" id="analyze">Analyze</a>
+                    </div>
                     </form>
                 </fieldset>
 
@@ -117,7 +117,12 @@
                 </fieldset>
 
                 <fieldset>
-                    <h4>Results:</h4>
+                    <h4>Results: 
+                        <strong><span id=result>Incomplete</span></strong>
+                    </h4>
+                    <div class="f1-buttons">
+                        <button type="button" class="btn btn-previous">Previous</button>
+                    </div>
                 </fieldset>
             </div>
         </div>
@@ -167,7 +172,7 @@
                     cache: false,
                     processData: false,
                     success: function(data) {
-                        console.log('Success!');
+                        $("#result").text(data.result);
                     }
                 });
                 return false;
