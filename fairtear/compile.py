@@ -5,6 +5,7 @@ __description__ = Constructs the models that are to be used for the final .fr
 file generation
 """
 
+import ast
 import pickle
 import pandas as pd
 import numpy as np
@@ -19,6 +20,8 @@ from fairtear.compilers.simple import SimpleCompiler
 from fairtear.compilers.recursive import RecursiveCompiler
 from fairtear.classifiers.base import Compiler
 from fairtear.classifiers.test_adult import generate_clfs, data_from_csv
+
+from fairtear.external.fairsquare import Encoder
 
 def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
     qualified_attrs, fairness_targets):
@@ -68,6 +71,39 @@ def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs,
     with open(outfr, "a") as file:
         compiler.frwrite(file)
 
+def fair_prove(fn):
+    f = open(fn, "r")
+    node = ast.parse(f.read())
+
+    e = Encoder()
+    e.visit(node)
+
+    print("\n\n== Population and program encoding == ")
+    print("Population model: ", e.model)
+    print("Program: ", e.program)
+
+    print("Probability dists: ", e.vdist)
+    print("fairness target", e.fairnessTarget)
+    print("sensitiveAttribute", e.sensitiveAttribute)
+    print("\n\n")
+
+    output           = None
+    epsilon          = 0.1
+    finiteMaximize   = True
+    randarg          = None
+    infiniteMaximize = True
+    plot             = False
+    numHists         = 5
+    histBound        = 3
+    timeoutarg       = None
+    adapt            = False
+    rotate           = False
+    verbose          = False
+
+    proveFairness(e, output, epsilon, finiteMaximize, randarg, infiniteMaximize, 
+            plot, args.z3qe, numHists, histBound, timeoutarg, adapt,
+            rotate, verbose)
+
 def test_compile():
     x_csv = "fairtear/data/adult.data.csv"
     y_csv = "fairtear/data/adult.data.labels.csv"
@@ -92,6 +128,7 @@ def test_compile():
         outfr = "fairtear/output/adult_{}.fr".format(compiler_type)
         compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
             qualified_attrs, fairness_targets)
+        fair_prove(outfr)
         
 if __name__ == "__main__":
     test_compile()
