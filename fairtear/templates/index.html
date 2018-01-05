@@ -143,14 +143,14 @@
 
                 newdiv.innerHTML = `
                 <input class="col-sm-3" type="text" placeholder="attribute" 
-                    name="${ divName }Attribute${ counter }">
-                <select class="col-sm-3" name="${ divName }Conditional${ counter }">
+                    name="${ divName }_attribute_${ counter }">
+                <select class="col-sm-3" name="${ divName }_conditional_${ counter }">
                   <option value=">">></option>
                   <option value="=">=</option>
                   <option value="<"><</option>
                 </select> 
                 <input class="col-sm-3" type="text" placeholder="threshold" 
-                    name="${ divName }Threshold${ counter }">`;
+                    name="${ divName }_threshold_${ counter }">`;
 
                 document.getElementById(divName).appendChild(newdiv);
             }

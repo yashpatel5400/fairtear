@@ -15,10 +15,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from compilers.simple import SimpleCompiler
-from compilers.recursive import RecursiveCompiler
-from classifiers.base import Compiler
-from classifiers.test_adult import generate_clfs, data_from_csv
+from fairtear.compilers.simple import SimpleCompiler
+from fairtear.compilers.recursive import RecursiveCompiler
+from fairtear.classifiers.base import Compiler
+from fairtear.classifiers.test_adult import generate_clfs, data_from_csv
 
 def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
     qualified_attrs, fairness_targets):

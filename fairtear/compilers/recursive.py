@@ -11,7 +11,7 @@ import scipy.stats
 import pandas as pd
 import numpy as np
 
-from compilers.helper import make_partitions, make_fit
+from fairtear.compilers.helper import make_partitions, make_fit
 
 class RecursiveCompiler:
     def __init__(self, x_csv, maxdepth, sensitive_attrs, qualified_attrs):

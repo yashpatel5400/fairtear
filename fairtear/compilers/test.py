@@ -5,8 +5,8 @@ __description__ = Tests the models that are to be used for the final .fr
 file generation
 """
 
-from compilers.simple import SimpleCompiler
-from compilers.recursive import RecursiveCompiler
+from fairtear.compilers.simple import SimpleCompiler
+from fairtear.compilers.recursive import RecursiveCompiler
 
 def test_compilers(incsv, sensitive_attrs, qualified_attrs):
     """Tests the dataset compilers in the compilers/ directory pointed at by the

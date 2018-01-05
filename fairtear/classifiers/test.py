@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
-from classifiers.compilers import DTCompiler
+from fairtear.classifiers.compilers import DTCompiler
 
 def _data_from_csv(incsv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 

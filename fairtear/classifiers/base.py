@@ -7,7 +7,7 @@ structure of FairSquare
 
 import numpy as np
 
-from classifiers.compilers import extract
+from fairtear.classifiers.compilers import extract
 
 class Compiler:
     def __init__(self, clf, features, target, fairness_targets):

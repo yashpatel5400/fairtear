@@ -15,7 +15,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from classifiers.base import Compiler
+from fairtear.classifiers.base import Compiler
 
 def data_from_csv(x_csv, y_csv):
     """Extracts the X, y data columns and their corresponding labels (column headers) 
