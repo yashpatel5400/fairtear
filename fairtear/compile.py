@@ -69,8 +69,8 @@ def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs,
         compiler.frwrite(file)
 
 def test_compile():
-    x_csv = "data/adult.data.csv"
-    y_csv = "data/adult.data.labels.csv"
+    x_csv = "fairtear/data/adult.data.csv"
+    y_csv = "fairtear/data/adult.data.labels.csv"
 
     X, y, X_labels, y_label = data_from_csv(x_csv=x_csv, y_csv=y_csv)
     generate_clfs(X, y)
@@ -83,13 +83,13 @@ def test_compile():
     
     compilers = [
         ("decisiontree", Compiler),
-        ("svm", Compiler),
-        ("nn", Compiler),
+        # ("svm", Compiler),
+        # ("nn", Compiler),
     ]
 
     for compiler_type, compiler_class in compilers:
-        clf_pickle = "classifiers/examples/adult_{}.pickle".format(compiler_type)
-        outfr = "output/adult_{}.fr".format(compiler_type)
+        clf_pickle = "fairtear/classifiers/examples/adult_{}.pickle".format(compiler_type)
+        outfr = "fairtear/output/adult_{}.fr".format(compiler_type)
         compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
             qualified_attrs, fairness_targets)
         
