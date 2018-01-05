@@ -13,7 +13,7 @@ import scipy.stats
 import numpy as np
 import math
 
-import compilers.constants as c
+import fairtear.compilers.constants as c
 
 def _plot_fit(dataset, data, mu, std):
     """Plots the data and the Gaussian fit that was found. Results are saved
