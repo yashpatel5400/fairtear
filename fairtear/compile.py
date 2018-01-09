@@ -28,6 +28,7 @@ from fairtear.classifiers.test_adult import generate_clfs, data_from_csv
 
 # FairSquare imports
 from parse import Encoder
+from fairProve import proveFairness
 
 def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
     qualified_attrs, fairness_targets):
@@ -99,6 +100,7 @@ def fair_prove(fn):
     randarg          = None
     infiniteMaximize = True
     plot             = False
+    z3qe             = True
     numHists         = 5
     histBound        = 3
     timeoutarg       = None
@@ -106,8 +108,8 @@ def fair_prove(fn):
     rotate           = False
     verbose          = False
 
-    proveFairness(e, output, epsilon, finiteMaximize, randarg, infiniteMaximize, 
-            plot, args.z3qe, numHists, histBound, timeoutarg, adapt,
+    return proveFairness(e, output, epsilon, finiteMaximize, randarg, infiniteMaximize, 
+            plot, z3qe, numHists, histBound, timeoutarg, adapt,
             rotate, verbose)
 
 def test_compile():
@@ -138,3 +140,4 @@ def test_compile():
         
 if __name__ == "__main__":
     test_compile()
+    fair_prove("fairtear/output/adult_decisiontree.fr")
