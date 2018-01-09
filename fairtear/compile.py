@@ -5,6 +5,11 @@ __description__ = Constructs the models that are to be used for the final .fr
 file generation
 """
 
+# ratchet way of getting around namespace issues with FairSquare
+import sys
+if __name__ == "__main__":
+    sys.path += ['fairtear/external/fairsquare/src']
+
 import ast
 import pickle
 import pandas as pd
@@ -21,7 +26,8 @@ from fairtear.compilers.recursive import RecursiveCompiler
 from fairtear.classifiers.base import Compiler
 from fairtear.classifiers.test_adult import generate_clfs, data_from_csv
 
-from fairtear.external.fairsquare import Encoder
+# FairSquare imports
+from parse import Encoder
 
 def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
     qualified_attrs, fairness_targets):
