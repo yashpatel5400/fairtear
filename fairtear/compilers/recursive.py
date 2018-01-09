@@ -215,8 +215,13 @@ class RecursiveCompiler:
         """
         tabs = "\t" * num_tabs
         for variable in program:
-            file_lines.append("{}{} = {}{}\n".format(tabs, 
-                variable, program[variable]["fit_type"], program[variable]["fit"]))
+            if program[variable]["fit_type"] == "step":
+                dist_template = "{}{} = {}({})\n"
+            else:
+                dist_template = "{}{} = {}{}\n"
+            file_lines.append(dist_template.format(tabs, variable, 
+                program[variable]["fit_type"], program[variable]["fit"]))
+            
             if len(program[variable]["partitions"]) != 0:
                 partition_ranges  = sorted(program[variable]["partitions"])
                 prev_partition_id = None
@@ -228,16 +233,12 @@ class RecursiveCompiler:
                         prev_partition_id = partition_id
                     else: conditional = "elif"
 
-                    if lower_bound == float("-inf"):
-                        lower_bound_str = ""
-                    else: lower_bound_str = "{} < ".format(str(lower_bound))
-
                     if upper_bound == float("inf"):
-                        upper_bound_str = ""
-                    else: upper_bound_str = " <= {}".format(str(upper_bound))
+                        inequality = " {} < {}".format(lower_bound, variable)
+                    else: inequality = " {} <= {}".format(variable, str(upper_bound))
 
-                    file_lines.append("{}{} {}{}{}:\n".format(tabs, conditional, 
-                        lower_bound_str, variable, upper_bound_str))
+                    file_lines.append("{}{}{}:\n".format(tabs, 
+                        conditional, inequality))
                     
                     subprogram = program[variable]["partitions"][partition_range]
                     self._recursive_frwrite(subprogram, file_lines, num_tabs=num_tabs+1)

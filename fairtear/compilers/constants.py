@@ -12,3 +12,6 @@ PARTITION_FRAC_THRESH = 0.10
 
 # penalty for having too many partitions (avoids overfitting)
 PARTITION_PENALTY = .33
+
+# decimal point precision used to avoid floating point imprecision
+DECIMAL_PRECISION = 6

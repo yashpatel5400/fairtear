@@ -105,6 +105,11 @@ def _step_fit(data, max_partitions=6):
             best_probs = probs
             best_partitions = partitions
 
+    # fix floating-point imprecision necessary in the final .fr file output
+    for i in range(len(best_probs)-1):
+        best_probs[i] = round(best_probs[i], c.DECIMAL_PRECISION)
+    best_probs[-1] = 1 - sum(best_probs[:-1])
+
     fit = [(best_partitions[i],best_partitions[i+1],best_probs[i]) 
         for i in range(len(best_partitions)-1)]
     return fit, min_dist

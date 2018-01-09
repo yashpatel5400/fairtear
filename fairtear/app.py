@@ -9,7 +9,7 @@ from flask import Flask, request, redirect, url_for, render_template, jsonify
 from werkzeug.utils import secure_filename
 
 from fairtear.forms import DataForm
-from fairtear.compile import compile
+from fairtear.compile import compile, fair_prove
 
 app = Flask(__name__)
 app.config.from_object("config")
@@ -75,9 +75,10 @@ def analyze_data():
 
         x_csv, y_csv, clf_pickle = filenames
         outfr = "fairtear/output/result.fr"
-        # compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
-        #     qualified_attrs, fairness_targets)
-    return jsonify(result="Completed") 
+        compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
+            qualified_attrs, fairness_targets)
+        result = fair_prove(fn)
+    return jsonify(result=result) 
 
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
