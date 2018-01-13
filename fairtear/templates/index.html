@@ -45,7 +45,7 @@
                 <p>Upload the data streams and classifier pickle to analyze fairness</p>
             </div>
 
-            <form method="post" enctype="multipart/form-data" id="data"></form>
+            <form method="post" enctype="multipart/form-data" id="data">
                 {{ form.csrf_token }}
 
                 <div class="f1">
@@ -74,36 +74,36 @@
                         </small>
                     </div>
 
-                <div class="js-model-attributes-select form-group">
-                        <label>Sensitive Attribute</label>
-                        <div class="input-group">
-                            <select class="custom-select" id="{{ form.sensitive.attribute.id }}" name="{{ form.sensitive.attribute.name }}">
-                                <option selected disabled>Choose attribute...</option>
-                            </select>
-                            {{ form.sensitive.conditional(class="custom-select ft-conditional-field") }}
-                            {{ form.sensitive.threshold(class="form-control") }}
+                    <div class="js-model-attributes-select">
+                        <div class="form-group">
+                            <label>Sensitive Attribute</label>
+                            <div class="input-group">
+                                <select class="js-attribute-input custom-select" id="{{ form.sensitive.attribute.id }}" name="{{ form.sensitive.attribute.name }}">
+                                </select>
+                                {{ form.sensitive.conditional(class="custom-select ft-conditional-field") }}
+                                {{ form.sensitive.threshold(class="form-control") }}
+                            </div>
+                            <small class="form-text text-muted">
+                                Attribute which indicates membership in a protected group.
+                            </small>
                         </div>
-                        <small class="form-text text-muted">
-                            Attribute which indicates membership in a protected group.
-                        </small>
-                    </div>
 
-                    <div class="form-group">
-                        <label>Qualified Attribute (optional)</label>
-                        <div class="custom-control custom-checkbox mb-2">
-                            <input type="checkbox" class="js-enable-qualified custom-control-input" id="enable-qualified">
-                            <label class="custom-control-label" for="enable-qualified">Enable</label>
+                        <div class="form-group">
+                            <label>Qualified Attribute (optional)</label>
+                            <div class="custom-control custom-checkbox mb-2">
+                                <input type="checkbox" class="js-enable-qualified custom-control-input" id="enable-qualified">
+                                <label class="custom-control-label" for="enable-qualified">Enable</label>
+                            </div>
+                            <div class="js-qualified-select input-group">
+                                <select class="js-attribute-input custom-select" id="{{ form.qualified.attribute.id }}" name="{{ form.qualified.attribute.name }}">
+                                </select>
+                                {{ form.qualified.conditional(class="custom-select ft-conditional-field") }}
+                                {{ form.qualified.threshold(class="form-control") }}
+                            </div>
+                            <small class="form-text text-muted">
+                                Optional attribute used to filter the population before applying a classifier. If not enabled, the entire population is considered.
+                            </small>
                         </div>
-                        <div class="input-group">
-                            <select class="custom-select" id="{{ form.qualified.attribute.id }}" name="{{ form.qualified.attribute.name }}">
-                                <option selected disabled>Choose attribute...</option>
-                            </select>
-                            {{ form.qualified.conditional(class="custom-select ft-conditional-field") }}
-                            {{ form.qualified.threshold(class="form-control") }}
-                        </div>
-                        <small class="form-text text-muted">
-                            Optional attribute used to filter the population before applying a classifier. If not enabled, the entire population is considered.
-                        </small>
                     </div>
 
                 </div>
@@ -127,8 +127,7 @@
                             Choose a features CSV to select a target attribute.
                         </small>
                         <div class="js-classifier-attributes-select input-group">
-                            <select class="custom-select" id="{{ form.target.attribute.id }}" name="{{ form.target.attribute.name }}">
-                                <option selected disabled>Choose attribute...</option>
+                            <select class="js-attribute-input custom-select" id="{{ form.target.attribute.id }}" name="{{ form.target.attribute.name }}">
                             </select>
                             {{ form.target.conditional(class="custom-select ft-conditional-field") }}
                             {{ form.target.threshold(class="form-control") }}
@@ -139,7 +138,7 @@
                 <div class="f1">
                     <h2>Fairness Analysis</h2>
 
-                    <button class="btn btn-primary btn-lg" id="analyze">Analyze</button>
+                    <button type="submit" class="btn btn-primary btn-lg" id="analyze">Analyze</button>
                 </div>
 
             </form>
