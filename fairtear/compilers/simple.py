@@ -56,7 +56,7 @@ class SimpleCompiler:
         for i, partition_column in enumerate(self.df.columns):
             print("Running partitioning on: {}...".format(partition_column))
             if partition_column not in completed:
-                fit, fit_type, _ = make_fit(self.df[partition_column])
+                fit, fit_type = make_fit(self.df[partition_column])
                 self.program[partition_column] = {
                     "fit" : fit,
                     "fit_type" : fit_type,
