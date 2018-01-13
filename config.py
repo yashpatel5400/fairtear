@@ -19,7 +19,8 @@ DEBUG = True
 THREADS_PER_PAGE = 2
 
 # Enable protection agains *Cross-site Request Forgery (CSRF)*
-CSRF_ENABLED     = True
+CSRF_ENABLED     = False
+WTF_CSRF_ENABLED = False
 
 # Use a secure, unique and absolutely secret key for
 # signing the data. 

@@ -5,7 +5,7 @@ __description__ = Main Flask application server
 """
 
 import os
-from flask import Flask, request, redirect, url_for, render_template, jsonify
+from flask import Flask, request, redirect, url_for, render_template, jsonify, abort
 from werkzeug.utils import secure_filename
 
 from fairtear.forms import DataForm
@@ -18,67 +18,37 @@ def allowed_file(filename):
     return "." in filename and \
            filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
+def save_file(file):
+    filename = os.path.join(app.config["UPLOAD_FOLDER"], secure_filename(file.filename))
+    file.save(filename)
+    return filename
+
+def prepare_attribute(form_data):
+    return [form_data[value] for value in ['attribute', 'conditional', 'threshold']]
+
 @app.route('/_analyze_data', methods=["GET","POST"])
 def analyze_data():
-    form = DataForm(request.form)
-    if form.validate():
-        # check if the post request has the file part
-        form_filenames = ["xcsv","ycsv","clf"]
-        files = []
+    form = DataForm()
 
-        for filename in form_filenames:
-            if filename not in request.files:
-                return redirect(request.url)
+    if not form.enable_qualified.data:
+        del form.qualified
 
-        files = [request.files[filename] for filename in form_filenames]
-        
-        # if user does not select file, browser also
-        # submit a empty part without filename
-        for file in files:
-            if not file or file.filename == "" or not allowed_file(file.filename):
-                return redirect(request.url)
+    if not form.validate():
+        return jsonify(errors=form.errors)
 
-        filenames = []
-        for file in files:
-            filename = os.path.join(app.config["UPLOAD_FOLDER"], 
-                secure_filename(file.filename))
-            filenames.append(filename)
-            file.save(filename)
+    x_csv = save_file(form.xcsv.data)
+    clf_pickle = save_file(form.clf.data)
 
-        sensitive_attrs_dict  = {}
-        qualified_attrs_dict  = {}
-        fairness_targets_dict = {}
-        for key in request.form:
-            attribute_vals = key.split("_")
-            if len(attribute_vals) != 3:
-                continue
-            
-            attr_type, attr_val, attr_count = attribute_vals
-            if   attr_type == "sensitive": target_dict = sensitive_attrs_dict
-            elif attr_type == "qualified": target_dict = qualified_attrs_dict
-            elif attr_type == "fairness" : target_dict = fairness_targets_dict
-            else: continue
-            
-            if attr_count not in target_dict:
-                target_dict[attr_count] = [None, None, None]
-
-            if   attr_val == "attribute"  : target_ind = 0
-            elif attr_val == "conditional": target_ind = 1
-            elif attr_val == "threshold"  : target_ind = 2
-            else: continue
-
-            target_dict[attr_count][target_ind] = request.form[key]
-
-        sensitive_attrs  = sensitive_attrs_dict.values()
-        qualified_attrs  = qualified_attrs_dict.values()
-        fairness_targets = fairness_targets_dict.values()
-
-        x_csv, y_csv, clf_pickle = filenames
-        outfr = "fairtear/output/result.fr"
-        compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
-            qualified_attrs, fairness_targets)
-        result = fair_prove(fn)
-    return jsonify(result=result) 
+    outfr = "fairtear/output/result.fr"
+    sensitive_attrs = [prepare_attribute(form.sensitive.data)]
+    if form.enable_qualified.data:
+        qualified_attrs = [prepare_attribute(form.qualified.data)]
+    else:
+        qualified_attrs = []
+    fairness_targets = [prepare_attribute(form.target.data)]
+    compile(clf_pickle, x_csv, form.target.data['attribute'], outfr, sensitive_attrs, qualified_attrs, fairness_targets)
+    result = fair_prove(outfr)
+    return jsonify(errors=None, result=result)
 
 @app.route("/", methods=["GET", "POST"])
 def upload_file():

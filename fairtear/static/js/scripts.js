@@ -43,9 +43,11 @@ function reducer(state, action) {
             break;
         case 'ANALYSIS_START':
             newState.analysisInProgress = true;
+            newState.analysisError = false;
             break;
         case 'ANALYSIS_COMPLETE':
             newState.analysisInProgress = false;
+            newState.analysisError = false;
             break;
         case 'ANALYSIS_ERROR':
             newState.analysisInProgress = false;
@@ -63,8 +65,6 @@ var store = Redux.createStore(reducer, initialState);
 var currentState = {};
 var attributesPresent = state => state.attributes && state.attributes.length > 0;
 var visibilityMap = {
-    'js-classifier-attributes-help': state => !attributesPresent(state),
-    'js-classifier-attributes-select': state => attributesPresent(state),
     'js-model-attributes-help': state => !attributesPresent(state),
     'js-model-attributes-select': state => attributesPresent(state),
     'js-qualified-select': state => state.qualifiedEnabled,
@@ -95,6 +95,9 @@ function render(nextState) {
     // Update csv validation
     $('.js-xcsv-validation').text(`Loaded ${nextState.dataCount} data points.`);
 
+    // Update submit button
+    $('.js-analysis-submit').attr('disabled', nextState.analysisInProgress);
+
     currentState = nextState;
 }
 
@@ -116,11 +119,17 @@ $(function () {
             type: 'POST',
             url: $SCRIPT_ROOT + '/_analyze_data',
             data: form_data,
-            contentType: 'multipart/form-data',
+            contentType: false,
             cache: false,
             processData: false,
             success: function (data) {
-                store.dispatch({ data, type: 'ANALYSIS_START' });
+                if (data.errors) {
+                    // TODO: handle validation errors
+                    store.dispatch({ data, type: 'ANALYSIS_ERROR' });
+                } else {
+                    store.dispatch({ data, type: 'ANALYSIS_START' });
+                }
+                
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 store.dispatch({ type: 'ANALYSIS_ERROR' });
