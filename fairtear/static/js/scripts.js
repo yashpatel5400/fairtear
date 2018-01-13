@@ -60,6 +60,8 @@ var visibilityMap = {
     'js-model-attributes-help': state => !attributesPresent(state),
     'js-model-attributes-select': state => attributesPresent(state),
     'js-qualified-select': state => state.qualifiedEnabled,
+    'js-xcsv-validation': state => state.dataCount !== null,
+    'js-ycsv-validation': state => state.labelsCount !== null,
 };
 
 function render(nextState) {
@@ -83,6 +85,10 @@ function render(nextState) {
         });
     }
 
+    // Update csv validation
+    $('.js-xcsv-validation').text(`Loaded ${nextState.dataCount} data points.`);
+    $('.js-ycsv-validation').text(`Loaded ${nextState.dataCount} labels.`);
+
     currentState = nextState;
 }
 
@@ -90,6 +96,12 @@ store.subscribe(() => render(store.getState()));
 render(initialState);
 
 $(function () {
+    $('.custom-file-input').change(function (e) {
+        if (this.files.length == 0) return;
+        var file = this.files[0];
+        $(this).next().text(file.name);
+    });
+
     $('#data').submit(function (e) {
         e.preventDefault();
         var form_data = new FormData(this);
@@ -97,23 +109,28 @@ $(function () {
             type: 'POST',
             url: $SCRIPT_ROOT + '/_analyze_data',
             data: form_data,
-            contentType: false,
+            contentType: 'multipart/form-data',
             cache: false,
             processData: false,
             success: function (data) {
                 $("#result").text(data.result);
-            }
+            },
         });
         return false;
     });
 
-    $('#xcsv').change(function (e) {
-        if (this.files.length == 0) return;
-        var file = this.files[0];
-        Papa.parse(file, {
-            complete: function ({ data }) {
-                store.dispatch({ data, type: 'LOADED_XCSV' });
-            },
+    [
+        { selector: '#xcsv', type: 'LOADED_XCSV'},
+        { selector: '#ycsv', type: 'LOADED_YCSV'},
+    ].forEach(({ selector, type }) => {
+        $(selector).change(function (e) {
+            if (this.files.length == 0) return;
+            var file = this.files[0];
+            Papa.parse(file, {
+                complete: function ({ data }) {
+                    store.dispatch({ data, type });
+                },
+            });
         });
     });
 
