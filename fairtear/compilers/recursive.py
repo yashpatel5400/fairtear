@@ -168,7 +168,7 @@ class RecursiveCompiler:
                 continue
 
             print("Running partitioning on: {}...".format(partition_column))
-            fit, fit_type, _ = make_fit(self.df[partition_column])
+            fit, fit_type = make_fit(self.df[partition_column])
             self.program[partition_column] = {
                 "fit" : fit,
                 "fit_type" : fit_type,
