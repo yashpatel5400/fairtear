@@ -5,6 +5,10 @@ __description__ = Set of helper functions used for all the .fr compilers, includ
 plotting and metric calculations
 """
 
+# fix floating point imprecision for probability calculations
+import decimal
+from decimal import Decimal
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -14,6 +18,7 @@ import numpy as np
 import math
 
 import fairtear.compilers.constants as c
+# decimal.getcontext().prec = c.DECIMAL_PRECISION
 
 def _entropy(data):
     """Calculates entropy of the data once binned.
@@ -70,12 +75,12 @@ def _step_fit(data, max_partitions=6):
             best_partitions = partitions
 
     # fix floating-point imprecision necessary in the final .fr file output
-    rounded_probs = []
-    for prob in best_probs:
-        rounded_probs.append(round(best_probs[i], c.DECIMAL_PRECISION))
-    rounded_probs[-1] = 1 - sum(rounded_probs[:-1])
+    dec_round = lambda x : Decimal(str(x)).quantize(
+        Decimal(c.DECIMAL_FORMAT_STR), rounding=decimal.ROUND_UP)
+    rounded_probs = [dec_round(prob) for prob in best_probs]
+    rounded_probs[-1] = Decimal(1.0) - sum(rounded_probs[:-1])
 
-    fit = [(best_partitions[i],best_partitions[i+1],rounded_probs[i]) 
+    fit = [(best_partitions[i],best_partitions[i+1],float(rounded_probs[i])) 
         for i in range(len(best_partitions)-1)]
     return fit, min_dist
 
