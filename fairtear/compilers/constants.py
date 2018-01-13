@@ -15,3 +15,6 @@ PARTITION_PENALTY = .33
 
 # decimal point precision used to avoid floating point imprecision
 DECIMAL_PRECISION = 6
+
+# decimal point precision used to avoid floating point imprecision
+DECIMAL_FORMAT_STR = '.000001'
