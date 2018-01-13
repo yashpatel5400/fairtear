@@ -28,6 +28,8 @@ var initialState = {
     qualifiedEnabled: false,
     dataCount: null,
     labelsCount: null,
+    analysisInProgress: false,
+    analysisError: false,
 };
 
 function reducer(state, action) {
@@ -42,6 +44,16 @@ function reducer(state, action) {
             break;
         case 'SET_QUALIFIED':
             newState.qualifiedEnabled = action.enabled;
+            break;
+        case 'ANALYSIS_START':
+            newState.analysisInProgress = true;
+            break;
+        case 'ANALYSIS_COMPLETE':
+            newState.analysisInProgress = false;
+            break;
+        case 'ANALYSIS_ERROR':
+            newState.analysisInProgress = false;
+            newState.analysisError = true;
             break;
         default:
             console.error('Unrecognized action type: ' + action.type);
@@ -62,6 +74,8 @@ var visibilityMap = {
     'js-qualified-select': state => state.qualifiedEnabled,
     'js-xcsv-validation': state => state.dataCount !== null,
     'js-ycsv-validation': state => state.labelsCount !== null,
+    'js-analysis-in-progress': state => state.analysisInProgress,
+    'js-analysis-error': state => state.analysisError,
 };
 
 function render(nextState) {
@@ -104,6 +118,7 @@ $(function () {
 
     $('#data').submit(function (e) {
         e.preventDefault();
+        store.dispatch({ type: 'ANALYSIS_START' });
         var form_data = new FormData(this);
         $.ajax({
             type: 'POST',
@@ -113,7 +128,10 @@ $(function () {
             cache: false,
             processData: false,
             success: function (data) {
-                $("#result").text(data.result);
+                store.dispatch({ data, type: 'ANALYSIS_START' });
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                store.dispatch({ type: 'ANALYSIS_ERROR' });
             },
         });
         return false;
