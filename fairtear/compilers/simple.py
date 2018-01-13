@@ -12,20 +12,16 @@ import numpy as np
 from fairtear.compilers.helper import make_partitions, make_fit
 
 class SimpleCompiler:
-    def __init__(self, incsv, outfr, features, sensitive_attrs, qualified_attrs):
+    def __init__(self, df, outfr, sensitive_attrs, qualified_attrs):
         """Simplest compiler, which assumes a maximum recursion depth of 1
         
         Parameters
         ----------
-        incsv : str
-            Filename of the csv where the input dataset is stored
+        df : DataFrame
+            Pandas DataFrame containing the input dataset
 
         outfr : str
             Filename where the output (.fr file) is to be stored
-
-        features : list of str
-            List of column names corresponding to the classifier input features. Should be
-            all the columns with the exception of target columns almost always
 
         sensitive_attrs : list of (str,str,int) tuples
             List of the names of attributes to be considered sensitive. Each attr has a
@@ -41,15 +37,14 @@ class SimpleCompiler:
             population, i.e. those satisfying the qualified conditionals. For example, if doing
             ("age",">",18), only those people of > 18 age will be considered in the population
         """
-        self.incsv = incsv
+        self.df = df
         self.outfr = outfr
-        self.features = features
         self.sensitive_attrs = sensitive_attrs
         self.qualified_attrs = qualified_attrs
         self.program = {}
 
     def compile(self):
-        """Compiles the csv dataset file into an internal "program" structure that is to
+        """Compiles the dataset into an internal "program" structure that is to
         be outputted as an .fr file. Mutates the self.program attribute
         
         Parameters
@@ -58,11 +53,10 @@ class SimpleCompiler:
         """
         completed = set()
 
-        df = pd.read_csv(self.incsv)[self.features]
-        for i, partition_column in enumerate(df.columns):
+        for i, partition_column in enumerate(self.df.columns):
             print("Running partitioning on: {}...".format(partition_column))
             if partition_column not in completed:
-                fit, fit_type, _ = make_fit(df[partition_column])
+                fit, fit_type, _ = make_fit(self.df[partition_column])
                 self.program[partition_column] = {
                     "fit" : fit,
                     "fit_type" : fit_type,
@@ -70,9 +64,9 @@ class SimpleCompiler:
                 }
                 completed.add(partition_column)
 
-                for j, column in enumerate(df.columns[i+1:]):
-                    fit, fit_type, partition = make_partition(df[column], 
-                        df[partition_column])
+                for j, column in enumerate(self.df.columns[i+1:]):
+                    fit, fit_type, partition = make_partitions(self.df[column], 
+                        self.df[partition_column])
                     
                     if fit is not None:
                         left_fit, right_fit = fit

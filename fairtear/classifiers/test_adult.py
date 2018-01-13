@@ -26,12 +26,10 @@ def data_from_csv(x_csv, y_csv):
     x_csv : str
         Filename of the csv where the input dataset is stored
     """
-    data = pd.read_csv(x_csv)
+    X, X_labels = X_from_csv(x_csv)
 
-    X = data.as_matrix()
     with open(y_csv) as f:
         y = csv.reader(f).__next__()
-    X_labels = list(data.columns)
     y_label  = "income"
 
     return X, y, X_labels, y_label

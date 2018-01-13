@@ -14,13 +14,13 @@ import numpy as np
 from fairtear.compilers.helper import make_partitions, make_fit
 
 class RecursiveCompiler:
-    def __init__(self, x_csv, maxdepth, sensitive_attrs, qualified_attrs):
+    def __init__(self, df, maxdepth, sensitive_attrs, qualified_attrs):
         """Recursive compiler, which assumes a maximum recursion depth as specified
         
         Parameters
         ----------
-        x_csv : str
-            Filename of the csv where the input dataset is stored
+        df : DataFrame
+            Pandas DataFrame containing the input dataset
     
         maxdepth : int
             Integer of the maximum depth in the final output (i.e. of conditionals)
@@ -39,7 +39,7 @@ class RecursiveCompiler:
             population, i.e. those satisfying the qualified conditionals. For example, if doing
             ("age",">",18), only those people of > 18 age will be considered in the population
         """
-        self.x_csv = x_csv
+        self.df = df
         self.maxdepth = maxdepth
         self.sensitive_attrs = sensitive_attrs
         self.qualified_attrs = qualified_attrs
@@ -161,15 +161,14 @@ class RecursiveCompiler:
         ----------
         None
         """
-        df = pd.read_csv(self.x_csv)
         completed = set()
 
-        for i, partition_column in enumerate(df.columns):
+        for i, partition_column in enumerate(self.df.columns):
             if partition_column in completed:
                 continue
 
             print("Running partitioning on: {}...".format(partition_column))
-            fit, fit_type, _ = make_fit(df[partition_column])
+            fit, fit_type, _ = make_fit(self.df[partition_column])
             self.program[partition_column] = {
                 "fit" : fit,
                 "fit_type" : fit_type,
@@ -178,7 +177,7 @@ class RecursiveCompiler:
 
             completed.add(partition_column)
             completed = self._recursive_compile(self.program[partition_column], 
-                df, completed, partition_column, depth=0)
+                self.df, completed, partition_column, depth=0)
             
         print("Compiled program tree!")
         
