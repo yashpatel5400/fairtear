@@ -5,8 +5,12 @@ __description__ = Tests the models that are to be used for the final .fr
 file generation
 """
 
+import sys
+sys.path += ['fairtear/external/fairsquare/src']
+
 from fairtear.compilers.simple import SimpleCompiler
 from fairtear.compilers.recursive import RecursiveCompiler
+from fairtear.compile import load_csv
 
 def test_compilers(incsv, sensitive_attrs, qualified_attrs):
     """Tests the dataset compilers in the compilers/ directory pointed at by the
@@ -31,19 +35,20 @@ def test_compilers(incsv, sensitive_attrs, qualified_attrs):
         population, i.e. those satisfying the qualified conditionals. For example, if doing
         ("age",">",18), only those people of > 18 age will be considered in the population
     """
-    features = ["ethnicity", "colRank", "yExp"]
-    sc = SimpleCompiler(incsv=incsv, outfr="output/simple_ex.fr", features=features,
-        sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
-    sc.compile()
-    sc.frwrite()
+    df, labels = load_csv(incsv)
 
-    rc = RecursiveCompiler(incsv=incsv, outfr="output/recur_ex.fr", maxdepth=2,
-         features=features, sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
+    # sc = SimpleCompiler(df, outfr="output/simple_ex.fr",
+    #     sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
+    # sc.compile()
+    # sc.frwrite()
+
+    rc = RecursiveCompiler(df, maxdepth=2,
+         sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
-    rc.frwrite()
+    rc.frwrite("output/recur_ex.fr")
 
 if __name__ == "__main__":
-    test_compilers("data/ex.csv", [("ethnicity",">",10)],[])
+    test_compilers("fairtear/data/adult.test.csv", [("ethnicity",">",10)],[])
 
     fr_input = """
     ethnicity = gaussian(0,100)

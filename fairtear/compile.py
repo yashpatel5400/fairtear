@@ -30,7 +30,12 @@ from fairtear.classifiers.test_adult import generate_clfs, data_from_csv
 from parse import Encoder
 from fairProve import proveFairness
 
-def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
+def load_csv(x_csv):
+    df = pd.read_csv(x_csv)
+    labels = list(df.columns)
+    return df, labels
+
+def compile(clf_pickle, x_csv, y_label, outfr, sensitive_attrs, 
     qualified_attrs, fairness_targets):
     """Main function, used to compile into the final .fr file. Takes the dataset and
     sensitive_attrs to construct the popModel() function and clf, features, and target
@@ -41,8 +46,11 @@ def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs,
     clf_pickle : str
         Filename of where a pickled classifier is saved
 
-    x_csv, y_csv : str
+    x_csv : DataFrame
         Filename of the csv where the input dataset is stored
+
+    y_label : str
+        Label of the target attribute
 
     sensitive_attrs : list of (str,str,int) tuples
         List of the names of attributes to be considered sensitive. Each attr has a
@@ -63,15 +71,15 @@ def compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs,
         ("hire",">",0.5) corresponds to wanting to ensure the population satisfies hire > 0.5
         independent of sensitive attributes
     """
-    X, y, X_labels, y_label = data_from_csv(x_csv=x_csv, y_csv=y_csv)
+    df, labels = load_csv(x_csv)
 
-    rc = RecursiveCompiler(x_csv=x_csv, maxdepth=2,
+    rc = RecursiveCompiler(df, maxdepth=2,
         sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
 
-    clf_bin = open(clf_pickle,"rb")
-    clf = pickle.load(clf_bin)
-    compiler = Compiler(clf, X_labels, y_label, fairness_targets)
+    with open(clf_pickle, "rb") as clf_bin:
+        clf = pickle.load(clf_bin)
+    compiler = Compiler(clf, labels, y_label, fairness_targets)
     
     with open(outfr, "w") as file:
         rc.frwrite(file)
@@ -134,7 +142,8 @@ def test_compile():
     for compiler_type, compiler_class in compilers:
         clf_pickle = "fairtear/classifiers/examples/adult_{}.pickle".format(compiler_type)
         outfr = "fairtear/output/adult_{}.fr".format(compiler_type)
-        compile(clf_pickle, x_csv, y_csv, outfr, sensitive_attrs, 
+        y_label = "income"
+        compile(clf_pickle, x_csv, y_label, outfr, sensitive_attrs, 
             qualified_attrs, fairness_targets)
         fair_prove(outfr)
         
