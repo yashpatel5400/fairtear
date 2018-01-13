@@ -59,15 +59,15 @@ class RecursiveCompiler:
             documentation on structure)
         """
         partitions_to_delete = []
-        for partition in program["partitions"]:
+        for partition_range in program["partitions"]:
             for variable in to_delete:
-                if variable in program["partitions"]:
-                    del program["partitions"][partition][variable]
-            if len(program["partitions"][partition]) == 0:
-                partitions_to_delete.append(partition)
+                if variable in program["partitions"][partition_range]:
+                    del program["partitions"][partition_range][variable]
+            if len(program["partitions"][partition_range]) == 0:
+                partitions_to_delete.append(partition_range)
         
-        for partition in partitions_to_delete:
-            del program["partitions"][partition]
+        for partition_range in partitions_to_delete:
+            del program["partitions"][partition_range]
 
     def _recursive_compile(self, program, df, completed, partition_column, depth):
         """Recursive helper function to compile the program from the dataset. The
