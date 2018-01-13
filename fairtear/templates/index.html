@@ -55,7 +55,7 @@
                         {{ form.xcsv.label }}
                         <div class="custom-file">
                             {{ form.xcsv(class="custom-file-input") }}
-                            <label class="custom-file-label" for="xcsv">Choose file</label>
+                            <label class="custom-file-label" for="xcsv">Choose file (.csv)...</label>
                         </div>
                         <small class="js-xcsv-validation form-text text-muted"></small>
                     </div>
@@ -84,8 +84,8 @@
                         <div class="form-group">
                             <label>Qualified Attribute (optional)</label>
                             <div class="custom-control custom-checkbox mb-2">
-                                <input type="checkbox" class="js-enable-qualified custom-control-input" id="enable-qualified">
-                                <label class="custom-control-label" for="enable-qualified">Enable</label>
+                                {{ form.enable_qualified(class="js-enable-qualified custom-control-input") }}
+                                <label class="custom-control-label" for="{{ form.enable_qualified.name }}">Enable</label>
                             </div>
                             <div class="js-qualified-select input-group">
                                 <select class="js-attribute-input custom-select" id="{{ form.qualified.attribute.id }}" name="{{ form.qualified.attribute.name }}">
@@ -107,7 +107,7 @@
                         {{ form.clf.label }}
                         <div class="custom-file">
                             {{ form.clf(class="custom-file-input") }}
-                            <label class="custom-file-label" for="clf">Choose file</label>
+                            <label class="custom-file-label" for="clf">Choose file (.pkl, .pickle)...</label>
                         </div>
                         <small class="form-text text-muted">
                             Supported classes: <code>StandardScaler</code>, <code>Pipeline</code>, <code>LinearSVC</code>, <code>DecisionTreeClassifier</code>, <code>MLPClassifier</code>
@@ -116,12 +116,8 @@
 
                     <div class="form-group">
                         <label>Fairness Target</label>
-                        <small class="js-classifier-attributes-help mt-0 form-text text-muted">
-                            Choose a features CSV to select a target attribute.
-                        </small>
-                        <div class="js-classifier-attributes-select input-group">
-                            <select class="js-attribute-input custom-select" id="{{ form.target.attribute.id }}" name="{{ form.target.attribute.name }}">
-                            </select>
+                        <div class="input-group">
+                            {{ form.target.attribute(class="form-control", placeholder="Target attribute name") }}
                             {{ form.target.conditional(class="custom-select ft-conditional-field") }}
                             {{ form.target.threshold(class="form-control") }}
                         </div>
@@ -130,7 +126,7 @@
 
                 <div class="f1">
                     <p>
-                        <button type="submit" class="btn btn-primary btn-lg btn-block" id="analyze">Run Analysis</button>
+                        <button type="submit" class="js-analysis-submit btn btn-primary btn-lg btn-block" id="analyze">Run Analysis</button>
                     </p>
                     <div class="js-analysis-in-progress">
                         <div class="bookshelf_wrapper">
