@@ -27,7 +27,6 @@ var initialState = {
     attributes: null,
     qualifiedEnabled: false,
     dataCount: null,
-    labelsCount: null,
     analysisInProgress: false,
     analysisError: false,
 };
@@ -38,9 +37,6 @@ function reducer(state, action) {
         case 'LOADED_XCSV':
             newState.attributes = action.data[0];
             newState.dataCount = action.data.length;
-            break;
-        case 'LOADED_YCSV':
-            newState.labelsCount = action.data.length;
             break;
         case 'SET_QUALIFIED':
             newState.qualifiedEnabled = action.enabled;
@@ -73,7 +69,6 @@ var visibilityMap = {
     'js-model-attributes-select': state => attributesPresent(state),
     'js-qualified-select': state => state.qualifiedEnabled,
     'js-xcsv-validation': state => state.dataCount !== null,
-    'js-ycsv-validation': state => state.labelsCount !== null,
     'js-analysis-in-progress': state => state.analysisInProgress,
     'js-analysis-error': state => state.analysisError,
 };
@@ -92,16 +87,13 @@ function render(nextState) {
 
     // Update select elements
     if (nextState.attributes && nextState.attributes.length > 0 && nextState.attributes !== currentState.attributes) {
-        $('.js-attribute-input').each(function () {
-            var defaultItem = $('<option selected disabled>Choose attribute...</option>');
-            var attributeItems = nextState.attributes.map(a => $(`<option value="${a}">${a}</option>`));
-            $(this).empty().append(defaultItem).append(attributeItems);
-        });
+        var defaultItem = $('<option selected disabled>Choose attribute...</option>');
+        var attributeItems = nextState.attributes.map(a => $(`<option value="${a}">${a}</option>`));
+        $('.js-attribute-input').empty().append(defaultItem).append(attributeItems);
     }
 
     // Update csv validation
     $('.js-xcsv-validation').text(`Loaded ${nextState.dataCount} data points.`);
-    $('.js-ycsv-validation').text(`Loaded ${nextState.dataCount} labels.`);
 
     currentState = nextState;
 }
@@ -137,18 +129,13 @@ $(function () {
         return false;
     });
 
-    [
-        { selector: '#xcsv', type: 'LOADED_XCSV'},
-        { selector: '#ycsv', type: 'LOADED_YCSV'},
-    ].forEach(({ selector, type }) => {
-        $(selector).change(function (e) {
-            if (this.files.length == 0) return;
-            var file = this.files[0];
-            Papa.parse(file, {
-                complete: function ({ data }) {
-                    store.dispatch({ data, type });
-                },
-            });
+    $('#xcsv').change(function (e) {
+        if (this.files.length == 0) return;
+        var file = this.files[0];
+        Papa.parse(file, {
+            complete: function ({ data }) {
+                store.dispatch({ data, type: 'LOADED_XCSV' });
+            },
         });
     });
 
