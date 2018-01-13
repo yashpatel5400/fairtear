@@ -1,116 +1,90 @@
+var sensitiveCounter = 0;
+var qualifiedCounter = 0;
+var fairnessCounter  = 0;
 
-function scroll_to_class(element_class, removed_height) {
-	var scroll_to = $(element_class).offset().top - removed_height;
-	if($(window).scrollTop() != scroll_to) {
-		$('html, body').stop().animate({scrollTop: scroll_to}, 0);
-	}
+function addInput(divName){
+    var newdiv = document.createElement('div');
+    var counter;
+    if      (divName == "sensitive") { sensitiveCounter++; counter = sensitiveCounter; }
+    else if (divName == "qualified") { qualifiedCounter++; counter = qualifiedCounter; }
+    else if (divName == "fairness")  { fairnessCounter++;  counter = fairnessCounter;  }
+
+    newdiv.innerHTML = `
+    <input class="col-sm-3" type="text" placeholder="attribute" 
+        name="${ divName }_attribute_${ counter }">
+    <select class="col-sm-3" name="${ divName }_conditional_${ counter }">
+      <option value=">">></option>
+      <option value="=">=</option>
+      <option value="<"><</option>
+    </select> 
+    <input class="col-sm-3" type="text" placeholder="threshold" 
+        name="${ divName }_threshold_${ counter }">`;
+
+    document.getElementById(divName).appendChild(newdiv);
 }
 
-function bar_progress(progress_line_object, direction) {
-	var number_of_steps = progress_line_object.data('number-of-steps');
-	var now_value = progress_line_object.data('now-value');
-	var new_value = 0;
-	if(direction == 'right') {
-		new_value = now_value + ( 100 / number_of_steps );
-	}
-	else if(direction == 'left') {
-		new_value = now_value - ( 100 / number_of_steps );
-	}
-	progress_line_object.attr('style', 'width: ' + new_value + '%;').data('now-value', new_value);
+var initialState = {
+    attributes: null,
+    qualifiedEnabled: false,
+    dataCount: null,
+    labelsCount: null,
+};
+
+function reducer(state, action) {
+    var newState = Object.assign({}, state);
+    switch (action.type) {
+        case 'LOADED_XCSV':
+            newState.attributes = action.data[0];
+            newState.dataCount = action.data.length;
+            break;
+        case 'LOADED_YCSV':
+            newState.labelsCount = action.data.length;
+            break;
+        case 'SET_QUALIFIED':
+            newState.qualifiedEnabled = action.enabled;
+            break;
+        default:
+            console.error('Unrecognized action type: ' + action.type);
+            break;
+    }
+    return newState;
 }
 
-jQuery(document).ready(function() {
-	
-    /*
-        Fullscreen background
-    */
-    $.backstretch("static/img/backgrounds/1.jpg");
+var store = Redux.createStore(reducer, initialState);
+
+store.subscribe(() => {
+    console.log(store.getState());
     
-    $('#top-navbar-1').on('shown.bs.collapse', function(){
-    	$.backstretch("resize");
+});
+
+$(function() {
+  $('a#analyze').bind('click', function() {
+    var form_data = new FormData($('#data')[0]);
+    $.ajax({
+        type: 'POST',
+        url: $SCRIPT_ROOT + '/_analyze_data',
+        data: form_data,
+        contentType: false,
+        cache: false,
+        processData: false,
+        success: function(data) {
+            $("#result").text(data.result);
+        }
     });
-    $('#top-navbar-1').on('hidden.bs.collapse', function(){
-    	$.backstretch("resize");
+    return false;
+  });
+
+  $('#xcsv').change(function (e) {
+    if (this.files.length == 0) return;
+    var file = this.files[0];
+    Papa.parse(file, {
+        complete: function ({ data }) {
+            store.dispatch({ data, type: 'LOADED_XCSV' });
+        },
     });
-    
-    /*
-        Form
-    */
-    $('.f1 fieldset:first').fadeIn('slow');
-    
-    $('.f1 input[type="text"], .f1 input[type="password"], .f1 textarea').on('focus', function() {
-    	$(this).removeClass('input-error');
-    });
-    
-    // next step
-    $('.f1 .btn-next').on('click', function() {
-    	var parent_fieldset = $(this).parents('fieldset');
-    	var next_step = true;
-    	// navigation steps / progress steps
-    	var current_active_step = $(this).parents('.f1').find('.f1-step.active');
-    	var progress_line = $(this).parents('.f1').find('.f1-progress-line');
-    	
-    	// fields validation
-    	parent_fieldset.find('input[type="text"], input[type="password"], textarea').each(function() {
-    		if( $(this).val() == "" ) {
-    			$(this).addClass('input-error');
-    			next_step = false;
-    		}
-    		else {
-    			$(this).removeClass('input-error');
-    		}
-    	});
-    	// fields validation
-    	
-    	if( next_step ) {
-    		parent_fieldset.fadeOut(400, function() {
-    			// change icons
-    			current_active_step.removeClass('active').addClass('activated').next().addClass('active');
-    			// progress bar
-    			bar_progress(progress_line, 'right');
-    			// show next step
-	    		$(this).next().fadeIn();
-	    		// scroll window to beginning of the form
-    			scroll_to_class( $('.f1'), 20 );
-	    	});
-    	}
-    	
-    });
-    
-    // previous step
-    $('.f1 .btn-previous').on('click', function() {
-    	// navigation steps / progress steps
-    	var current_active_step = $(this).parents('.f1').find('.f1-step.active');
-    	var progress_line = $(this).parents('.f1').find('.f1-progress-line');
-    	
-    	$(this).parents('fieldset').fadeOut(400, function() {
-    		// change icons
-    		current_active_step.removeClass('active').prev().removeClass('activated').addClass('active');
-    		// progress bar
-    		bar_progress(progress_line, 'left');
-    		// show previous step
-    		$(this).prev().fadeIn();
-    		// scroll window to beginning of the form
-			scroll_to_class( $('.f1'), 20 );
-    	});
-    });
-    
-    // submit
-    $('.f1').on('submit', function(e) {
-    	
-    	// fields validation
-    	$(this).find('input[type="text"], input[type="password"], textarea').each(function() {
-    		if( $(this).val() == "" ) {
-    			e.preventDefault();
-    			$(this).addClass('input-error');
-    		}
-    		else {
-    			$(this).removeClass('input-error');
-    		}
-    	});
-    	// fields validation
-    	
-    });
-    
-    
+  });
+
+  $('.js-enable-qualified').change(function (e) {
+    store.dispatch({ type: 'SET_QUALIFIED', enabled: this.checked });
+  });
 });

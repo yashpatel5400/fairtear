@@ -10,13 +10,23 @@ from flask_wtf.file import FileField, FileRequired
 from wtforms.validators import InputRequired
 from wtforms import StringField, SelectField, FloatField, FileField, FormField
 
-class AttributeForm(Form):
-    attribute   = StringField("Attribute", validators=[InputRequired()])
-    conditional = SelectField("Conditional", choices=[(">", ">"), ("=", "="), 
-        ("<", "<")], validators=[InputRequired()])
-    threshold   = FloatField("Threshold", validators=[InputRequired()])
+def ConditionalField(label, required=True):
+    validators = [InputRequired()] if required else []
+    return SelectField(label, choices=[(">", ">"), ("=", "="), ("<", "<")], validators=validators)
+
+def AttributeFormClass(required=True):
+    validators = [InputRequired()] if required else []
+    class AttributeForm(Form):
+        attribute   = StringField("Attribute", validators=validators)
+        conditional = SelectField("Conditional", choices=[(">", ">"), ("=", "="), ("<", "<")], validators=validators)
+        threshold   = FloatField("Threshold", validators=validators)
+    return AttributeForm
 
 class DataForm(FlaskForm):
-    xcsv  = FileField() 
-    ycsv  = FileField()
-    clf   = FileField()
+    xcsv  = FileField("Features CSV")
+    ycsv  = FileField("Target CSV")
+    clf   = FileField("Classifier Pickle")
+
+    sensitive = FormField(AttributeFormClass())
+    qualified = FormField(AttributeFormClass(required=False))
+    target = FormField(AttributeFormClass())
