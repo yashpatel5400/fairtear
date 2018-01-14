@@ -5,8 +5,11 @@ __description__ = Main Flask application server
 """
 
 import os
-from flask import Flask, request, redirect, url_for, render_template, jsonify, abort
+import sys
+import json
+from flask import Flask, request, redirect, url_for, render_template, jsonify, abort, Response
 from werkzeug.utils import secure_filename
+from shelljob import proc
 
 from fairtear.forms import DataForm
 from fairtear.compile import compile, fair_prove
@@ -46,9 +49,30 @@ def analyze_data():
     else:
         qualified_attrs = []
     fairness_targets = [prepare_attribute(form.target.data)]
-    compile(clf_pickle, x_csv, form.target.data['attribute'], outfr, sensitive_attrs, qualified_attrs, fairness_targets)
-    result = fair_prove(outfr)
-    return jsonify(errors=None, result=result)
+
+    args = {
+        "clf_pickle": clf_pickle,
+        "x_csv": x_csv,
+        "y_label": form.target.data['attribute'],
+        "outfr": outfr,
+        "sensitive_attrs": sensitive_attrs,
+        "qualified_attrs": qualified_attrs,
+        "fairness_targets": fairness_targets,
+    }
+
+    # stream console output
+    # https://mortoray.com/2014/03/04/http-streaming-of-command-output-in-python-flask/
+    g = proc.Group()
+    p = g.run([sys.executable, "-u", "fairtear/compile.py", json.dumps(args)])
+
+    def read_process():
+        while g.is_pending():
+            lines = g.readlines()
+            for proc, line in lines:
+                sys.stdout.buffer.write(line)
+                yield line
+
+    return Response(read_process(), mimetype="text/plain")
 
 @app.route("/", methods=["GET", "POST"])
 def upload_file():

@@ -29,6 +29,7 @@ var initialState = {
     dataCount: null,
     analysisInProgress: false,
     analysisError: false,
+    analysisOutput: '',
 };
 
 function reducer(state, action) {
@@ -44,6 +45,10 @@ function reducer(state, action) {
         case 'ANALYSIS_START':
             newState.analysisInProgress = true;
             newState.analysisError = false;
+            newState.analysisOutput = '';
+            break;
+        case 'ANALYSIS_OUTPUT':
+            newState.analysisOutput += action.data;
             break;
         case 'ANALYSIS_COMPLETE':
             newState.analysisInProgress = false;
@@ -71,6 +76,7 @@ var visibilityMap = {
     'js-xcsv-validation': state => state.dataCount !== null,
     'js-analysis-in-progress': state => state.analysisInProgress,
     'js-analysis-error': state => state.analysisError,
+    'js-analysis-output-wrap': state => state.analysisOutput,
 };
 
 function render(nextState) {
@@ -98,6 +104,9 @@ function render(nextState) {
     // Update submit button
     $('.js-analysis-submit').attr('disabled', nextState.analysisInProgress);
 
+    // Update analysis output
+    $('.js-analysis-output').text(nextState.analysisOutput);
+
     currentState = nextState;
 }
 
@@ -115,6 +124,8 @@ $(function () {
         e.preventDefault();
         store.dispatch({ type: 'ANALYSIS_START' });
         var form_data = new FormData(this);
+        var seen = 0;
+        var buffer = "";
         $.ajax({
             type: 'POST',
             url: $SCRIPT_ROOT + '/_analyze_data',
@@ -127,12 +138,24 @@ $(function () {
                     // TODO: handle validation errors
                     store.dispatch({ data, type: 'ANALYSIS_ERROR' });
                 } else {
-                    store.dispatch({ data, type: 'ANALYSIS_START' });
+                    store.dispatch({ data, type: 'ANALYSIS_COMPLETE' });
                 }
-                
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 store.dispatch({ type: 'ANALYSIS_ERROR' });
+            },
+            xhrFields: {
+                onprogress: function (e) {
+                    var response = e.currentTarget.response.substring(seen);
+                    seen += response.length;
+                    buffer += response;
+                    var newline = buffer.indexOf('\n');
+                    while (newline !== -1) {
+                        store.dispatch({ type: 'ANALYSIS_OUTPUT', data: buffer.substring(0, newline+1) });
+                        buffer = buffer.substring(newline+1);
+                        newline = buffer.indexOf('\n');
+                    }
+                }
             },
         });
         return false;
