@@ -4,8 +4,11 @@ __name__   = app.py
 __description__ = Main Flask application server
 """
 
-import os
 import sys
+import os.path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'external/fairsquare/src'))
+
+import os
 import json
 from flask import Flask, request, redirect, url_for, render_template, jsonify, abort, Response
 from werkzeug.utils import secure_filename
