@@ -25,7 +25,20 @@
         <div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                INSERT INFORMATION ABOUT FAIRTEAR HERE
+                <h2>What</h2>
+                <p> FairTear is a tool that tears apart machine learning algorithm-dataset pairs to determine whether they are fair or not. FairTear heavily relies on <a href="https://github.com/sedrews/fairsquare">FairSquare</a>, and this effort would not have been possible without the generous open-sourcing of its code. The tool primarily serves as an application layer abstraction on the FairSquare back-end, taking as input the dataset on which a classifier was trained on (separated into the features and target csv files) and the classifier itself (saved as a binary pickle file). </p>
+
+                <h2>Why</h2>
+                <p> With the introduction of machine learning algorithms to mainstream applications, the issues of inherent unfairness and biases arises as a significant issue. Machine learning has grown into positions in which they are being used to decide  moments in people's lives, ranging from major to seemingly minute, such as deciding from whether they will be given bail to their online shopping experiences. It, therefore, stands to reason that steps should be taken towards the ends of mitigating issues that may arise as a result of biases in such algorithms, beginning with initially detection. 
+
+                Another critical point is the adoption of such systems. With the recent emergences of criticisms in online algorithms, such as Facebook's "echo-chamber" news feed, people have become more aware and skeptical of their use. Were it possible to automate the detection and analysis of fairness of an algorithm, the process of instating a corresponding legislative department to ensure such fairness would be much more streamlined. 
+
+                We developed FairTear in response to both of these concerns and many more we may encounter going forward into this exciting, albeit somewhat scary, field. </p>
+
+                <h2>How</h2>
+                <p> FairTear uses fundamental probability and modelling techniques to fit the inputted dataset and classifier into a special format that FairSquare reads. This special format is then passed through FairSquare from which our final result is determined. While it is possible to write in this special code format manually, which in fact is how the authors of the original FairSquare paper tested their project, we wished to abstract those concepts away, making it easier for you, the developers, to determine whether the code you've developed is fair or not. 
+
+                To read more in-depth on the math and underlying principles at play in FairTear, please read: Automated Probabilistic Analysis on Dataset Models by Yash Patel and Zachary Liu. </p>
             </div>
           </div>
         </div>
