@@ -53,6 +53,9 @@ def generate_clfs(X, y):
         ("svm", LinearSVC(random_state=0)),
         ("nn", MLPClassifier(hidden_layer_sizes=(10, 10), random_state=0)),
     ]
+    test_X, test_y, _, _ = data_from_csv(
+        x_csv="fairtear/data/adult.test.csv", 
+        y_csv="fairtear/data/adult.test.labels.csv")
     for clf_type, clf in clfs:
         print("Training {} classifier...".format(clf_type))
         pipeline = Pipeline([
@@ -60,6 +63,8 @@ def generate_clfs(X, y):
             (clf_type, clf),
         ])
         pipeline.fit(X, y)
+        print("Train score: {}".format(pipeline.score(X, y)))
+        print("Test score: {}".format(pipeline.score(test_X, test_y)))
         print("Saving {} classifier...".format(clf_type))
         pickle_out = open("fairtear/classifiers/examples/adult_{}.pickle".format(clf_type),"wb")
         pickle.dump(pipeline, pickle_out)
