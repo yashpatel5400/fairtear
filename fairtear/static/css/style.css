@@ -118,62 +118,15 @@ ul.navbar-nav {
 }
 
 .f1 {
-  margin: 25px 0;
+  margin: 25px auto;
   padding: 25px;
   background: #fff;
   border-radius: 4px;
+  max-width: 800px;
 }
 
-.f1 h3 {
-  margin-top: 0;
-  margin-bottom: 5px;
-  text-transform: uppercase;
-}
-
-/***** Media queries *****/
-
-@media (max-width: 767px) {
-  
-  .navbar {
-    padding-top: 0;
-  }
-
-  .navbar.navbar-no-bg {
-    background: #333;
-    background: rgba(51, 51, 51, 0.9);
-  }
-
-  .navbar-brand {
-    height: 60px;
-    margin-left: 15px;
-  }
-
-  .navbar-collapse {
-    border: 0;
-  }
-
-  .navbar-toggle {
-    margin-top: 12px;
-  }
-
-  .top-content {
-    padding: 40px 0 110px 0;
-  }
-}
-
-@media (max-width: 415px) {
-  
-  h1, h2 {
-    font-size: 32px;
-  }
-
-  .f1 {
-    padding-bottom: 20px;
-  }
-
-  .f1-buttons button {
-    margin-bottom: 5px;
-  }
+.f1 > p:last-child {
+  margin-bottom: 0;
 }
 
 .input-group .ft-conditional-field {
