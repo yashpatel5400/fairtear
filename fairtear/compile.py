@@ -114,7 +114,7 @@ def fair_prove(fn):
     timeoutarg       = None
     adapt            = False
     rotate           = False
-    verbose          = False
+    verbose          = True
 
     return proveFairness(e, output, epsilon, finiteMaximize, randarg, infiniteMaximize, 
             plot, z3qe, numHists, histBound, timeoutarg, adapt,
