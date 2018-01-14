@@ -19,6 +19,7 @@ codegen = "*"
 asteval = "*"
 "z3-solver" = "*"
 shelljob = "*"
+gunicorn = "*"
 
 
 [dev-packages]
