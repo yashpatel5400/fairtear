@@ -18,6 +18,7 @@ sklearn = "*"
 codegen = "*"
 asteval = "*"
 "z3-solver" = "*"
+shelljob = "*"
 
 
 [dev-packages]

@@ -7,14 +7,17 @@ file generation
 
 # ratchet way of getting around namespace issues with FairSquare
 import sys
+import os.path
 if __name__ == "__main__":
-    sys.path += ['fairtear/external/fairsquare/src']
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'external/fairsquare/src'))
 
 import ast
 import pickle
 import pandas as pd
 import numpy as np
 import csv
+import json
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 from sklearn.neural_network import MLPClassifier
@@ -118,7 +121,7 @@ def fair_prove(fn):
     timeoutarg       = None
     adapt            = False
     rotate           = False
-    verbose          = False
+    verbose          = True
 
     return proveFairness(e, output, epsilon, finiteMaximize, randarg, infiniteMaximize, 
             plot, z3qe, numHists, histBound, timeoutarg, adapt,
@@ -156,4 +159,10 @@ def test_compile(num_features=None):
         fair_prove(outfr)
         
 if __name__ == "__main__":
-    test_compile(num_features=4)
+    if len(sys.argv) == 1:
+        test_compile(num_features=4)
+        sys.exit()
+
+    args = json.loads(sys.argv[1])
+    compile(**args)
+    fair_prove(args["outfr"])
