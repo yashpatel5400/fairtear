@@ -20,6 +20,10 @@ import math
 import fairtear.compilers.constants as c
 # decimal.getcontext().prec = c.DECIMAL_PRECISION
 
+def dec_round(x):
+    return Decimal(str(x)).quantize(Decimal(c.DECIMAL_FORMAT_STR), 
+        rounding=decimal.ROUND_UP)
+
 def _entropy(data):
     """Calculates entropy of the data once binned.
 
@@ -75,13 +79,12 @@ def _step_fit(data, max_partitions=6):
             best_partitions = partitions
 
     # fix floating-point imprecision necessary in the final .fr file output
-    dec_round = lambda x : Decimal(str(x)).quantize(
-        Decimal(c.DECIMAL_FORMAT_STR), rounding=decimal.ROUND_UP)
     rounded_probs = [dec_round(prob) for prob in best_probs]
     rounded_probs[-1] = Decimal(1.0) - sum(rounded_probs[:-1])
 
-    fit = [(best_partitions[i],best_partitions[i+1],float(rounded_probs[i])) 
-        for i in range(len(best_partitions)-1)]
+    fit = [(float(dec_round(best_partitions[i])),
+        float(dec_round(best_partitions[i+1])),
+        float(rounded_probs[i])) for i in range(len(best_partitions)-1)]
     return fit, min_dist
 
 def make_fit(data):
@@ -99,6 +102,7 @@ def make_fit(data):
         Data to be partitioned
     """
     gauss_fit  = scipy.stats.norm.fit(data)
+    gauss_fit = (float(dec_round(gauss_fit[0])), float(dec_round(gauss_fit[1])))
     gauss_dist, _ = scipy.stats.kstest(data, "norm", args=gauss_fit)
     step_fit, step_dist = _step_fit(data, max_partitions=6)
 
