@@ -233,8 +233,8 @@ class RecursiveCompiler:
                     else: conditional = "elif"
 
                     if upper_bound == float("inf"):
-                        inequality = " {} < {}".format(lower_bound, variable)
-                    else: inequality = " {} <= {}".format(variable, str(upper_bound))
+                        inequality = " {:.5g} < {}".format(lower_bound, variable)
+                    else: inequality = " {} <= {:.5g}".format(variable, upper_bound)
 
                     file_lines.append("{}{}{}:\n".format(tabs, 
                         conditional, inequality))
