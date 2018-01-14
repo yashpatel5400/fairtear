@@ -8,9 +8,10 @@ file generation
 import sys
 sys.path += ['fairtear/external/fairsquare/src']
 
+import pandas as pd
+
 from fairtear.compilers.simple import SimpleCompiler
 from fairtear.compilers.recursive import RecursiveCompiler
-from fairtear.compile import load_csv
 
 def test_compilers(incsv, sensitive_attrs, qualified_attrs):
     """Tests the dataset compilers in the compilers/ directory pointed at by the
@@ -35,7 +36,7 @@ def test_compilers(incsv, sensitive_attrs, qualified_attrs):
         population, i.e. those satisfying the qualified conditionals. For example, if doing
         ("age",">",18), only those people of > 18 age will be considered in the population
     """
-    df, labels = load_csv(incsv)
+    df = pd.read_csv(incsv)
 
     # sc = SimpleCompiler(df, outfr="output/simple_ex.fr",
     #     sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
@@ -45,7 +46,7 @@ def test_compilers(incsv, sensitive_attrs, qualified_attrs):
     rc = RecursiveCompiler(df, maxdepth=2,
          sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
-    with open("output/recur_ex.fr") as f:
+    with open("fairtear/output/recur_ex.fr", "w") as f:
         rc.frwrite(f)
 
 if __name__ == "__main__":
