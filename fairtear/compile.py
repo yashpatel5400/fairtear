@@ -134,8 +134,8 @@ def test_compile():
     qualified_attrs  = []
     
     compilers = [
-        ("decisiontree", Compiler),
-        # ("svm", Compiler),
+        # ("decisiontree", Compiler),
+        ("svm", Compiler),
         # ("nn", Compiler),
     ]
 
