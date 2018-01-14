@@ -16,10 +16,12 @@ Since FairTear uses FairSquare as necessary dependency, the following steps must
 ```
 git clone https://github.com/yashpatel5400/fairtear.git
 cd fairtear/external
-git clone https://github.com/sedrews/fairsquare.git
+git clone https://github.com/yashpatel5400/fairsquare.git
 ```
 
-From here, you must follow the [FairSquare](https://github.com/sedrews/fairsquare) README guide for setting up FairSquare. For convenience, the steps are copied below (assuming you to still be in the fairtear/external directory):
+**Important Note:** The FairSquare repo you clone _must_ be the forked one reference in the above instructions, **not** the original one developed under sedrews. This forked version makes a crucial change, without which FairTear cannot produce a final result.
+
+From here, you must follow the [FairSquare](https://github.com/yashpatel5400/fairsquare) README guide for setting up FairSquare. For convenience, the steps are copied below (assuming you to still be in the fairtear/external directory):
 
 Additionally, it uses the following dependencies:
 - [z3](http://github.com/Z3Prover/z3):
