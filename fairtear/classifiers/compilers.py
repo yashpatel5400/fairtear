@@ -36,7 +36,7 @@ def extract_decision_tree(clf, features, target):
         else:
             feature = features[clf.tree_.feature[node_index]]
             threshold = clf.tree_.threshold[node_index]
-            node["name"] = "{} > {}".format(feature, threshold)
+            node["name"] = "{} > {:.4f}".format(feature, threshold)
             left_index   = clf.tree_.children_left[node_index]
             right_index  = clf.tree_.children_right[node_index]
             node["children"] = [_extract_helper(right_index),
@@ -76,8 +76,8 @@ def extract_svm(clf, features, target):
     intercept = clf.intercept_[0]
 
     return [target], [
-        "{} = {}\n".format(target, " + ".join("{} * {}".format(feature, weight) for feature, weight in zip(features, coef))),
-        "{} = {} + {}\n".format(target, target, intercept),
+        "{} = {}\n".format(target, " + ".join("{} * {:.4f}".format(feature, weight) for feature, weight in zip(features, coef))),
+        "{} = {} + {:.4f}\n".format(target, target, intercept),
     ]
 
 
@@ -104,17 +104,17 @@ def extract_neural_network(clf, features, target):
             else:
                 name = "hidden_{}_{}".format(layer_i, neuron_i)
 
-            expression = " + ".join("{} * {}".format(feature, weight) for feature, weight in zip(prev_features, weights))
+            expression = " + ".join("{} * {:.4f}".format(feature, weight) for feature, weight in zip(prev_features, weights))
             next_features.append(name)
             output.append("{} = {}\n".format(name, expression))
-            output.append("{} = {} + {}\n".format(name, name, intercept))
+            output.append("{} = {} + {:.4f}\n".format(name, name, intercept))
 
             activation = clf.out_activation_ if is_output_layer else clf.activation
             if activation == "relu":
                 output.append("if {} < 0:\n".format(name))
                 output.append("\t{} = 0\n".format(name))
             elif activation == "logistic":
-                output.append("{} = 1 / (1 + {} ** -{})\n".format(name, math.e, name))
+                output.append("{} = 1 / (1 + {:.4f} ** -{})\n".format(name, math.e, name))
             else:
                 raise Exception("Unsupported activation function: {}".format(activation))
 
@@ -137,7 +137,7 @@ def extract_scaler(clf, features, target):
     new_features = ["scaled_{}".format(feature) for feature in features]
     output = []
     for new_feature, feature, mean, scale in zip(new_features, features, clf.mean_, clf.scale_):
-        output.append("{} = ({} - {}) * {}\n".format(new_feature, feature, mean, scale))
+        output.append("{} = ({} - {:.4f}) * {:.4f}\n".format(new_feature, feature, mean, scale))
     return new_features, output
 
 
