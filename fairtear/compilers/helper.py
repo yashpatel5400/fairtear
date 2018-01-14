@@ -5,6 +5,10 @@ __description__ = Set of helper functions used for all the .fr compilers, includ
 plotting and metric calculations
 """
 
+# fix floating point imprecision for probability calculations
+import decimal
+from decimal import Decimal
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -14,54 +18,19 @@ import numpy as np
 import math
 
 import fairtear.compilers.constants as c
+# decimal.getcontext().prec = c.DECIMAL_PRECISION
 
-def _plot_fit(dataset, data, mu, std):
-    """Plots the data and the Gaussian fit that was found. Results are saved
-    according to the dataset, i.e. to output/[dataset]_fit.png
-
-    Parameters
-    ----------
-    dataset : str
-        String for the filename of the output
-
-    data : Numpy array
-        Raw data to be visualized (as bins)
-
-    mu, std : float, float
-        Parameters defining the fit Gaussian distribution
-    """
-    plt.hist(data, bins=25, normed=True, alpha=0.6, color='g')
-
-    xmin, xmax = plt.xlim()
-    x = np.linspace(xmin, xmax, 100)
-    p = scipy.stats.norm.pdf(x, mu, std)
-    plt.plot(x, p, 'k', linewidth=2)
-    title = "Fit results: mu={}, std={}".format(mu, std)
-    plt.title(title)
-
-    plt.savefig("output/{}_fit.png".format(dataset))
-    plt.close()
-
-def _entropy(data, to_plot=False):
+def _entropy(data):
     """Calculates entropy of the data once binned.
 
     Parameters
     ----------
     data : Numpy array
         Data for which entropy is to be calculated
-
-    to_plot : bool
-        Indicates whether the binning results are to be visualized. If True,
-        the outputs are saved to output/partitions.png
     """
     num_partitions = 25
     counts, _ = np.histogram(data, num_partitions)
     probabilities = counts / len(data)
-    if to_plot:
-        plt.hist(data, bins=25, normed=True, alpha=0.6, color='g')
-        plt.title("Data Partitions")
-        plt.savefig("output/partitions.png")
-        plt.close()
     return scipy.stats.entropy(probabilities)
 
 def _step_fit(data, max_partitions=6):
@@ -106,11 +75,12 @@ def _step_fit(data, max_partitions=6):
             best_partitions = partitions
 
     # fix floating-point imprecision necessary in the final .fr file output
-    for i in range(len(best_probs)-1):
-        best_probs[i] = round(best_probs[i], c.DECIMAL_PRECISION)
-    best_probs[-1] = 1 - sum(best_probs[:-1])
+    dec_round = lambda x : Decimal(str(x)).quantize(
+        Decimal(c.DECIMAL_FORMAT_STR), rounding=decimal.ROUND_UP)
+    rounded_probs = [dec_round(prob) for prob in best_probs]
+    rounded_probs[-1] = Decimal(1.0) - sum(rounded_probs[:-1])
 
-    fit = [(best_partitions[i],best_partitions[i+1],best_probs[i]) 
+    fit = [(best_partitions[i],best_partitions[i+1],float(rounded_probs[i])) 
         for i in range(len(best_partitions)-1)]
     return fit, min_dist
 
@@ -133,10 +103,10 @@ def make_fit(data):
     step_fit, step_dist = _step_fit(data, max_partitions=6)
 
     if gauss_dist < step_dist:
-        return gauss_fit, "gaussian", gauss_dist
-    return step_fit, "step", step_dist
+        return gauss_fit, "gaussian"
+    return step_fit, "step"
 
-def _partition(data, partition_data, partition):
+def _partition(data, orig_entropy, partition_data, partition):
     """Given data, partition data, and the current partition, returns the
     fit, fit_type, mse as the result. If mse is returned as None, this
     indicates that no partition is to be made, i.e. data should NOT be
@@ -158,46 +128,30 @@ def _partition(data, partition_data, partition):
     partition : float
         Value where the partition data is to be split
     """
-    orig_entropy = _entropy(data)
     left_partition  = data[partition_data <= partition]
     right_partition = data[partition_data > partition]
     
     left_frac  = len(left_partition)  / len(data)
     right_frac = len(right_partition) / len(data)
     
-    new_entropy = left_frac * _entropy(left_partition) + \
-        right_frac * _entropy(right_partition)
+    left_entropy  = _entropy(left_partition)
+    right_entropy = _entropy(right_partition)
+
+    new_entropy = left_frac * left_entropy + right_frac * right_entropy
     information_gain = orig_entropy - new_entropy
-    
-    orig_fit, orig_type, orig_dist = make_fit(data)
 
     if information_gain < c.INFORMATION_GAIN_THRESH \
-        or left_frac  < c.PARTITION_FRAC_THRESH     \
-        or right_frac < c.PARTITION_FRAC_THRESH: 
+        or left_frac    < c.PARTITION_FRAC_THRESH     \
+        or right_frac   < c.PARTITION_FRAC_THRESH: 
 
-        return orig_fit, orig_type, orig_dist, None
+        return None
 
-    # ===================== Fits on the partitioned data ===================== #
-    fits, fit_types, dists = [orig_fit], [orig_type], [orig_dist]
-    for values in [left_partition, right_partition]:
-        fit, fit_type, dist = make_fit(values)
+    left_fit,  left_fit_type  = make_fit(left_partition)
+    right_fit, right_fit_type = make_fit(right_partition)
+    return information_gain, [left_fit, right_fit], [left_fit_type, right_fit_type], \
+        [left_entropy, right_entropy], [left_partition, right_partition]
 
-        fits.append(fit)
-        fit_types.append(fit_type)
-        dists.append(dist)
-
-    orig_fit,  left_fit,  right_fit    = fits
-    orig_type, left_type, right_type = fit_types
-    orig_dist, left_dist, right_dist = dists
-    new_dist = left_frac * left_dist + right_frac * right_dist
-    
-    # TODO: determine whether new_dist makes sense as a metric
-    # if orig_dist < new_dist: 
-    #     return orig_fit, orig_type, None
-    return [left_fit, right_fit], [left_type, right_type], \
-        new_dist, [left_partition, right_partition]
-
-def _make_partition(data, partition_data):
+def _make_partition(data, partition_data, orig_entropy):
     """Given data and the corresponding partitioning data, determines the best
     partition of the data based on partition_data. Returns a tuple of
     fit, fit_type, partition as the result. If fit is returned as None, this
@@ -220,41 +174,48 @@ def _make_partition(data, partition_data):
         partition_mean + partition_std,
         considered_partitions)
 
-    min_dist  = None
-    best_fit  = None
-    best_fit_type  = None
-    best_partition = None
-    best_partition_val = None
-
+    max_information_gain = None
+    best_fit             = None
+    best_fit_type        = None
+    best_entropy         = None
+    best_partition       = None
+    best_partition_val   = None
+    
     for partition_val in potential_partition_vals:
-        fit, fit_type, dist, partition = _partition(data, partition_data, partition_val)
-        if partition is not None:
-            if min_dist is None or dist < min_dist:
-                min_dist = dist
-                best_fit = fit
-                best_fit_type  = fit_type
-                best_partition = partition
-                best_partition_val = partition_val
+        partition_result = _partition(data, orig_entropy, partition_data, partition_val)
 
-    return best_fit, best_fit_type, best_partition_val, best_partition
+        if partition_result is not None:
+            information_gain, fit, fit_type, entropy, partition = partition_result
+            if max_information_gain is None or information_gain > max_information_gain:
+                max_information_gain = information_gain
+                
+                best_fit        = fit
+                best_fit_type   = fit_type
+                best_entropy    = entropy
+                best_partition  = partition
+                best_partition_val = partition_val
+                
+    return best_fit, best_fit_type, best_entropy, best_partition, best_partition_val
 
 def make_partitions(data, partition_data):
-    max_partitions  = 5
-    fits           = []
-    fit_types      = []
+    max_partitions       = 5
+    fits       = []
+    fit_types  = []
     partition_vals = []
     partitions     = [data]
-
+    entropies      = [_entropy(data)]
+        
     for _ in range(max_partitions):
-        partition_entropies = [_entropy(partition) for partition in partitions]
-        to_partition_ind = np.argmax(partition_entropies)
+        to_partition_ind = np.argmax(entropies)
         subdata           = partitions[to_partition_ind]
         partition_subdata = partition_data[subdata.index]
 
-        fit, fit_type, partition_val, partition = _make_partition(subdata, partition_subdata)
+        fit, fit_type, entropy, partition, partition_val = \
+            _make_partition(subdata, partition_subdata, entropies[to_partition_ind])
         if fit is not None:
             fits = fits[:to_partition_ind] + fit + fits[to_partition_ind+1:]
             fit_types = fit_types[:to_partition_ind] + fit_type + fit_types[to_partition_ind+1:]
+            entropies = entropies[:to_partition_ind] + entropy + entropies[to_partition_ind+1:]
             partition_vals.insert(to_partition_ind, partition_val)
             partitions = partitions[:to_partition_ind] + partition + partitions[to_partition_ind+1:]
         else: break
