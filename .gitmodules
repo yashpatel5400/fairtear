@@ -1,0 +1,3 @@
+[submodule "fairtear/external/fairsquare"]
+	path = fairtear/external/fairsquare
+	url = git@github.com:yashpatel5400/fairsquare.git
