@@ -1,1 +1,1 @@
-web: gunicorn fairtear.app:app
+web: gunicorn -t 3600 fairtear.app:app
