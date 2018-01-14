@@ -131,6 +131,7 @@ def extract_neural_network(clf, features, target):
 
 def extract_scaler(clf, features, target):
     assert(isinstance(clf, StandardScaler))
+    print("{} == {}".format(len(features), len(clf.scale_)))
     assert(len(features) == len(clf.scale_))
     assert(len(features) == len(clf.mean_))
 

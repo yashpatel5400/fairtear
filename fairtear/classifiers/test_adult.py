@@ -49,9 +49,9 @@ def generate_clfs(X, y):
         Target values to be predicted by the classifiers
     """
     clfs = [
-        ("decisiontree", DecisionTreeClassifier(random_state=0)),
+        ("decisiontree", DecisionTreeClassifier(random_state=0, min_samples_leaf=25)),
         ("svm", LinearSVC(random_state=0)),
-        ("nn", MLPClassifier(hidden_layer_sizes=(10, 10), random_state=0)),
+        ("nn", MLPClassifier(hidden_layer_sizes=(2, 2), random_state=0)),
     ]
     for clf_type, clf in clfs:
         print("Training {} classifier...".format(clf_type))
