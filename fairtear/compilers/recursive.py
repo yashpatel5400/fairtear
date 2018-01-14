@@ -214,12 +214,21 @@ class RecursiveCompiler:
         """
         tabs = "\t" * num_tabs
         for variable in program:
+            dist_template = "{}{} = {}({})\n"
             if program[variable]["fit_type"] == "step":
-                dist_template = "{}{} = {}({})\n"
+                fit = "[{}]".format(
+                    ", ".join(
+                        "({})".format(
+                            ", ".join(
+                                "{:.4f}".format(x) for x in step
+                            )
+                        ) for step in program[variable]["fit"]
+                    )
+                )
             else:
-                dist_template = "{}{} = {}{}\n"
+                fit = ", ".join("{:.4f}".format(x) for x in program[variable]["fit"])
             file_lines.append(dist_template.format(tabs, variable, 
-                program[variable]["fit_type"], program[variable]["fit"]))
+                program[variable]["fit_type"], fit))
             
             if len(program[variable]["partitions"]) != 0:
                 partition_ranges  = sorted(program[variable]["partitions"])
@@ -233,8 +242,8 @@ class RecursiveCompiler:
                     else: conditional = "elif"
 
                     if upper_bound == float("inf"):
-                        inequality = " {:.5g} < {}".format(lower_bound, variable)
-                    else: inequality = " {} <= {:.5g}".format(variable, upper_bound)
+                        inequality = " {:.4f} < {}".format(lower_bound, variable)
+                    else: inequality = " {} <= {:.4f}".format(variable, upper_bound)
 
                     file_lines.append("{}{}{}:\n".format(tabs, 
                         conditional, inequality))
