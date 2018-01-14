@@ -30,13 +30,8 @@ from fairtear.classifiers.test_adult import generate_clfs, data_from_csv
 from parse import Encoder
 from fairProve import proveFairness
 
-def load_csv(x_csv):
-    df = pd.read_csv(x_csv)
-    labels = list(df.columns)
-    return df, labels
-
 def compile(clf_pickle, x_csv, y_label, outfr, sensitive_attrs, 
-    qualified_attrs, fairness_targets):
+    qualified_attrs, fairness_targets, num_features=None):
     """Main function, used to compile into the final .fr file. Takes the dataset and
     sensitive_attrs to construct the popModel() function and clf, features, and target
     for F(). Outputs are saved to the outfr destination (returns void)
@@ -70,8 +65,17 @@ def compile(clf_pickle, x_csv, y_label, outfr, sensitive_attrs,
         Same structure as sensitive_attrs. Denotes the desired fairness criterion, i.e.
         ("hire",">",0.5) corresponds to wanting to ensure the population satisfies hire > 0.5
         independent of sensitive attributes
+
+    num_features : int (> 0)
+        Number of features on which the classifier has been trained. This must be less than
+        the total number of features in the dataset (no exception will be thrown in the case
+        it exceeds the len: simply follows as the total dataset)
     """
-    df, labels = load_csv(x_csv)
+    df = pd.read_csv(x_csv)
+    labels = list(df.columns)
+    if num_features is not None:
+        labels = labels[:num_features]
+        df = df[labels]
 
     rc = RecursiveCompiler(df, maxdepth=2,
         sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
@@ -114,29 +118,33 @@ def fair_prove(fn):
     timeoutarg       = None
     adapt            = False
     rotate           = False
-    verbose          = True
+    verbose          = False
 
     return proveFairness(e, output, epsilon, finiteMaximize, randarg, infiniteMaximize, 
             plot, z3qe, numHists, histBound, timeoutarg, adapt,
             rotate, verbose)
 
-def test_compile():
+def test_compile(num_features=None):
     x_csv = "fairtear/data/adult.data.csv"
     y_csv = "fairtear/data/adult.data.labels.csv"
 
     X, y, X_labels, y_label = data_from_csv(x_csv=x_csv, y_csv=y_csv)
+
+    if num_features is not None:
+        X        = X[:,:num_features]
+        X_labels = X_labels[:num_features]
     generate_clfs(X, y)
 
     # ------------------------------------------------------------------------------
 
     fairness_targets = [("income",">",0.5)]
-    sensitive_attrs  = [("ethnicity",">",10)]
+    sensitive_attrs  = [("age",">",35)]
     qualified_attrs  = []
     
     compilers = [
-        # ("decisiontree", Compiler),
+        ("decisiontree", Compiler),
         ("svm", Compiler),
-        # ("nn", Compiler),
+        ("nn", Compiler),
     ]
 
     for compiler_type, compiler_class in compilers:
@@ -144,9 +152,8 @@ def test_compile():
         outfr = "fairtear/output/adult_{}.fr".format(compiler_type)
         y_label = "income"
         compile(clf_pickle, x_csv, y_label, outfr, sensitive_attrs, 
-            qualified_attrs, fairness_targets)
+           qualified_attrs, fairness_targets, num_features=num_features)
         fair_prove(outfr)
         
 if __name__ == "__main__":
-    test_compile()
-    fair_prove("fairtear/output/adult_decisiontree.fr")
+    test_compile(num_features=4)
