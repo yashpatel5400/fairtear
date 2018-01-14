@@ -216,15 +216,7 @@ class RecursiveCompiler:
         for variable in program:
             dist_template = "{}{} = {}({})\n"
             if program[variable]["fit_type"] == "step":
-                fit = "[{}]".format(
-                    ", ".join(
-                        "({})".format(
-                            ", ".join(
-                                "{:.4f}".format(x) for x in step
-                            )
-                        ) for step in program[variable]["fit"]
-                    )
-                )
+                fit = str(program[variable]["fit"])
             else:
                 fit = ", ".join("{:.4f}".format(x) for x in program[variable]["fit"])
             file_lines.append(dist_template.format(tabs, variable, 
