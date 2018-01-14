@@ -45,7 +45,8 @@ def test_compilers(incsv, sensitive_attrs, qualified_attrs):
     rc = RecursiveCompiler(df, maxdepth=2,
          sensitive_attrs=sensitive_attrs, qualified_attrs=qualified_attrs)
     rc.compile()
-    rc.frwrite("output/recur_ex.fr")
+    with open("output/recur_ex.fr") as f:
+        rc.frwrite(f)
 
 if __name__ == "__main__":
     test_compilers("fairtear/data/adult.test.csv", [("ethnicity",">",10)],[])
