@@ -1,0 +1,11 @@
+{
+  "name": "FairTear",
+  "description": "Tears apart datasets coupled with algorithms to determine whether or not they are fair. Coupled up with FairSquare.",
+  "repository": "https://github.com/yashpatel5400/fairtear",
+  "logo": "https://raw.githubusercontent.com/yashpatel5400/fairtear/master/fairtear/static/img/logo.png",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
