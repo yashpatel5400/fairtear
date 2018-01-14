@@ -109,22 +109,17 @@ def extract_neural_network(clf, features, target):
             output.append("{} = {}\n".format(name, expression))
             output.append("{} = {} + {:.4f}\n".format(name, name, intercept))
 
-            activation = clf.out_activation_ if is_output_layer else clf.activation
-            if activation == "relu":
-                output.append("if {} < 0:\n".format(name))
-                output.append("\t{} = 0\n".format(name))
-            elif activation == "logistic":
-                output.append("{} = 1 / (1 + {:.4f} ** -{})\n".format(name, math.e, name))
-            else:
-                raise Exception("Unsupported activation function: {}".format(activation))
+            if not is_output_layer:
+                if clf.activation == "relu":
+                    output.append("if {} < 0:\n".format(name))
+                    output.append("\t{} = 0\n".format(name))
+                else:
+                    raise Exception("Unsupported activation function: {}".format(activation))
 
         prev_features = next_features
         next_features = []
 
     assert(debug_output_layer_count == 1)
-
-    # Shift to center around 0.5 instead of around 0
-    output.append("{} = {} + 0.5\n".format(target, target))
 
     return [target], output
 
