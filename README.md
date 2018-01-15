@@ -3,7 +3,7 @@
 
 Tool to tear apart algorithm-dataset pairs to determine whether they are fair or not. FairTear heavily relies on [FairSquare](https://github.com/sedrews/fairsquare), and this effort would not have been possible without the generous open-sourcing of its code. The tool primarily serves as an application layer abstraction on the FairSquare back-end, taking as input the dataset on which a classifier was trained on (separated into the features and target csv files) and the classifier itself (saved as a binary pickle file). Details on use and supported classifiers is given below.
 
-To read more in-depth on the math and underlying principles at play in FairTear, please read: **Automated Probabilistic Analysis on Dataset Models** by
+To read more in-depth on the math and underlying principles at play in FairTear, please read: **[Automated Probabilistic Analysis on Dataset Models](FairTear.pdf)** by
 [Yash Patel](https://github.com/yashpatel5400) and
 [Zachary Liu](https://github.com/zacharyliu).
 
