@@ -105,9 +105,11 @@ function render(nextState) {
     $('.js-analysis-submit').attr('disabled', nextState.analysisInProgress);
 
     // Update analysis output
-    $('.js-analysis-output')
-        .text(nextState.analysisOutput)
-        .scrollTop($('.js-analysis-output')[0].scrollHeight);
+    $('.js-analysis-output').text(nextState.analysisOutput);
+
+    // Scroll analysis output to bottom
+    // TODO: only scroll if already at bottom
+    $('.js-analysis-output-wrap').scrollTop($('.js-analysis-output-wrap')[0].scrollHeight);
 
     currentState = nextState;
 }
